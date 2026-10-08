@@ -1,0 +1,38 @@
+# ===== DADOS PESSOAIS — NUNCA VERSIONAR =====
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+photos/
+**/photos/
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.gif
+!src/assets/**
+!src-tauri/icons/**
+!docs/**/*.png
+data/
+backups/
+*.bak
+*.zip
+
+# ===== Build / dependências =====
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# ===== Ambiente / SO / IDE =====
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+coverage/
+*.log
