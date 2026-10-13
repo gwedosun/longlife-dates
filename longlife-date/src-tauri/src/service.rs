@@ -39,28 +39,43 @@ mod tests {
 
     #[test]
     fn test_validate_date_invalid_format() {
-        assert!(matches!(validate_date("14/02/2024").unwrap_err(), AppError::InvalidDate));
-        assert!(matches!(validate_date("").unwrap_err(), AppError::InvalidDate));
+        assert!(matches!(
+            validate_date("14/02/2024").unwrap_err(),
+            AppError::InvalidDate
+        ));
+        assert!(matches!(
+            validate_date("").unwrap_err(),
+            AppError::InvalidDate
+        ));
     }
 
     #[test]
     fn test_validate_location_empty() {
-        assert!(matches!(validate_location("   ").unwrap_err(), AppError::InvalidLocation));
+        assert!(matches!(
+            validate_location("   ").unwrap_err(),
+            AppError::InvalidLocation
+        ));
     }
 
     #[test]
     fn test_validate_location_trim_and_limit() {
         assert_eq!(validate_location(" Praia ").unwrap(), "Praia");
-        
+
         let long_location = "a".repeat(121);
-        assert!(matches!(validate_location(&long_location).unwrap_err(), AppError::InvalidLocation));
+        assert!(matches!(
+            validate_location(&long_location).unwrap_err(),
+            AppError::InvalidLocation
+        ));
     }
 
     #[test]
     fn test_validate_description_limit() {
         let long_desc = "a".repeat(5001);
-        assert!(matches!(validate_description(&long_desc).unwrap_err(), AppError::DescriptionTooLong));
-        
+        assert!(matches!(
+            validate_description(&long_desc).unwrap_err(),
+            AppError::DescriptionTooLong
+        ));
+
         let valid_desc = "a".repeat(5000);
         assert!(validate_description(&valid_desc).is_ok());
     }

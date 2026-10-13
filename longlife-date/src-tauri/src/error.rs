@@ -5,28 +5,28 @@ use thiserror::Error;
 pub enum AppError {
     #[error("Data inválida ou em formato incorreto")]
     InvalidDate,
-    
+
     #[error("O local do encontro é inválido")]
     InvalidLocation,
-    
+
     #[error("A descrição excedeu o limite máximo de 5000 caracteres")]
     DescriptionTooLong,
-    
+
     #[error("Formato de imagem inválido. Apenas JPEG, PNG e WebP são aceitos.")]
     InvalidImage,
-    
+
     #[error("A imagem excede o limite de tamanho permitido de 10 MB")]
     ImageTooLarge,
-    
-    #[error("Encontro não encontrado")]
+
+    #[error("Registro não encontrado")]
     NotFound,
-    
+
     #[error("O nome do arquivo é inválido ou contém caracteres não permitidos")]
     InvalidFileName,
-    
+
     #[error("Erro no banco de dados: {0}")]
     Database(String),
-    
+
     #[error("Erro de sistema de arquivos (I/O): {0}")]
     Io(String),
 }
