@@ -106,7 +106,10 @@ pub fn delete_encounter(conn: &Connection, photos_dir: &Path, id: i64) -> Result
 }
 
 /// Reexporta para o comando não precisar importar o repository.
-pub fn list_encounters(conn: &Connection, filter: &repository::EncounterFilter) -> Result<Vec<Encounter>> {
+pub fn list_encounters(
+    conn: &Connection,
+    filter: &repository::EncounterFilter,
+) -> Result<Vec<Encounter>> {
     repository::list_encounters_filtered(conn, filter)
 }
 
@@ -144,12 +147,11 @@ mod tests {
     use super::*;
     use crate::error::AppError;
     use crate::repository::migrate;
+    use crate::repository::EncounterFilter;
     use std::env;
     use std::fs;
     use std::path::PathBuf;
     use uuid::Uuid;
-    use crate::repository::EncounterFilter;
-
 
     fn setup() -> (Connection, PathBuf) {
         let conn = Connection::open_in_memory().unwrap();
@@ -223,7 +225,13 @@ mod tests {
         assert!(matches!(err, AppError::InvalidImage));
 
         // Confirma que nada foi inserido
-        let list = list_encounters(&conn, &EncounterFilter { desc: false, ..Default::default() });
+        let list = list_encounters(
+            &conn,
+            &EncounterFilter {
+                desc: false,
+                ..Default::default()
+            },
+        );
         assert!(list.unwrap().is_empty());
 
         let _ = fs::remove_dir_all(&dir);
@@ -315,10 +323,16 @@ mod tests {
 
         delete_all_data(&conn, &dir).unwrap();
 
-    assert!(list_encounters(&conn, &EncounterFilter { desc: false, ..Default::default() })
+        assert!(list_encounters(
+            &conn,
+            &EncounterFilter {
+                desc: false,
+                ..Default::default()
+            }
+        )
         .unwrap()
-        .is_empty());        
-    assert!(!dir.join(&f1).exists(), "foto 1 deveria sumir");
+        .is_empty());
+        assert!(!dir.join(&f1).exists(), "foto 1 deveria sumir");
         assert!(!dir.join(&f2).exists(), "foto 2 deveria sumir");
 
         let _ = fs::remove_dir_all(&dir);
@@ -354,7 +368,13 @@ mod tests {
 
         // ainda assim, apagar tudo deve funcionar
         assert!(delete_all_data(&conn, &dir).is_ok());
-    assert!(list_encounters(&conn, &EncounterFilter { desc: false, ..Default::default() })
+        assert!(list_encounters(
+            &conn,
+            &EncounterFilter {
+                desc: false,
+                ..Default::default()
+            }
+        )
         .unwrap()
         .is_empty());
         let _ = fs::remove_dir_all(&dir);

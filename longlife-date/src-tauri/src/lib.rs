@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 use tauri::Manager;
 
+pub mod backup;
 pub mod commands;
 pub mod encounter_service;
 pub mod error;
@@ -10,7 +11,6 @@ pub mod models;
 pub mod photo_store;
 pub mod repository;
 pub mod service;
-pub mod backup;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

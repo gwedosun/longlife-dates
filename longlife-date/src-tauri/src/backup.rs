@@ -38,10 +38,15 @@ pub struct BackupPhoto {
 
 fn mime_from_filename(name: &str) -> String {
     let l = name.to_lowercase();
-    if l.ends_with(".png") { "image/png".into() }
-    else if l.ends_with(".jpg") || l.ends_with(".jpeg") { "image/jpeg".into() }
-    else if l.ends_with(".webp") { "image/webp".into() }
-    else { "application/octet-stream".into() }
+    if l.ends_with(".png") {
+        "image/png".into()
+    } else if l.ends_with(".jpg") || l.ends_with(".jpeg") {
+        "image/jpeg".into()
+    } else if l.ends_with(".webp") {
+        "image/webp".into()
+    } else {
+        "application/octet-stream".into()
+    }
 }
 
 /// Exporta todos os encontros + fotos num JSON.
@@ -85,8 +90,8 @@ pub fn export(conn: &Connection, photos_dir: &Path) -> Result<BackupFile> {
 /// 4. Se a transação falhar, remove as fotos novas e devolve o erro.
 /// 5. Se der certo, apaga as fotos antigas (best-effort).
 pub fn import(conn: &mut Connection, photos_dir: &Path, json: &str) -> Result<usize> {
-    let parsed: BackupFile = serde_json::from_str(json)
-        .map_err(|e| AppError::Io(format!("backup inválido: {e}")))?;
+    let parsed: BackupFile =
+        serde_json::from_str(json).map_err(|e| AppError::Io(format!("backup inválido: {e}")))?;
 
     if parsed.schema_version != SCHEMA_VERSION {
         return Err(AppError::Io(format!(
@@ -230,15 +235,27 @@ mod tests {
 
         // apaga tudo
         crate::encounter_service::delete_all_data(&conn, &dir).unwrap();
-        assert!(list_encounters(&conn, &EncounterFilter { desc: false, ..Default::default() })
-            .unwrap()
-            .is_empty());
+        assert!(list_encounters(
+            &conn,
+            &EncounterFilter {
+                desc: false,
+                ..Default::default()
+            }
+        )
+        .unwrap()
+        .is_empty());
         // restaura
         let n = import(&mut conn, &dir, &json).unwrap();
         assert_eq!(n, 2);
 
-        let list = list_encounters(&conn, &EncounterFilter { desc: false, ..Default::default() })
-            .unwrap();
+        let list = list_encounters(
+            &conn,
+            &EncounterFilter {
+                desc: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].location, "Praia");
         assert!(list[0].photo_file.is_some());
@@ -267,9 +284,15 @@ mod tests {
 
         // estado intacto
         assert_eq!(
-            list_encounters(&conn, &EncounterFilter { desc: false, ..Default::default() })
-                .unwrap()
-                .len(),
+            list_encounters(
+                &conn,
+                &EncounterFilter {
+                    desc: false,
+                    ..Default::default()
+                }
+            )
+            .unwrap()
+            .len(),
             1
         );
         let _ = fs::remove_dir_all(&dir);

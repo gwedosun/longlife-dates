@@ -138,10 +138,7 @@ pub fn delete_encounter_cmd(
 use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 
 #[tauri::command]
-pub fn read_photo_cmd(
-    app: tauri::AppHandle,
-    filename: String,
-) -> Result<String, String> {
+pub fn read_photo_cmd(app: tauri::AppHandle, filename: String) -> Result<String, String> {
     let root = photos_root(&app)?;
     let path = photo_store::photo_path(&filename, &root).map_err(|e| e.to_string())?;
     let bytes = std::fs::read(&path).map_err(|e| format!("ler foto: {e}"))?;
@@ -179,4 +176,3 @@ pub fn import_backup_cmd(
     let root = photos_root(&app)?;
     crate::backup::import(&mut conn, &root, &json).map_err(|e| e.to_string())
 }
-

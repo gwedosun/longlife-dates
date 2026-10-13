@@ -1,0 +1,235 @@
+name: Release - Publicação de Versão
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    name: Build & Release (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: "--bundles nsis,msi"
+            rust_targets: ""
+          - platform: ubuntu-22.04
+            args: "--bundles deb,appimage"
+            rust_targets: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin --bundles dmg,app"
+            rust_targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+
+    steps:
+      # 1. Checkout do código na tag/commit
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # Normaliza caso o repositório tenha os arquivos em subpasta
+      - name: Normalizar estrutura de diretórios
+        shell: bash
+        run: |
+          if [ ! -f "package.json" ] && [ -f "longlife-date/package.json" ]; then
+            echo "Movendo arquivos da subpasta longlife-date para a raiz do workspace..."
+            shopt -s dotglob
+            cp -r longlife-date/* .
+          fi
+
+      # 2. Dependências de sistema no Linux
+      - name: Instalar dependências de sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # 3. Rust toolchain com suporte a targets universais no macOS
+      - name: Configurar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      # 4. Node.js 20 com cache npm
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      # 5. Cache de compilação Rust
+      - name: Configurar Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # 6. Instalação de dependências npm
+      - name: Instalar dependências npm
+        run: npm ci
+
+      # 7. Execução rigorosa dos testes antes de iniciar o empacotamento
+      - name: Testes Frontend (Lint e Tipos)
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Testes Unitários Frontend
+        run: npm run test:unit
+
+      - name: Testes do Backend Rust
+        working-directory: src-tauri
+        run: cargo test
+
+      # Compilação prévia de release do binário para permitir inspeção e checagem de tamanho
+      - name: Compilar binário release para inspeção
+        shell: bash
+        run: |
+          npm run build
+          cd src-tauri
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            cargo build --release --target aarch64-apple-darwin
+            cargo build --release --target x86_64-apple-darwin
+          else
+            cargo build --release
+          fi
+
+      # 8. Verificação do tamanho do executável (Critério de Segurança: falha se < 1 MB)
+      - name: Verificar tamanho do executável
+        shell: bash
+        run: |
+          echo "Buscando executável compilado..."
+          BIN=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if [ -f "src-tauri/target/release/longlife-date.exe" ]; then
+              BIN="src-tauri/target/release/longlife-date.exe"
+            else
+              BIN=$(find src-tauri/target/release -maxdepth 1 -type f -name "*.exe" -not -name "*-setup.exe" | head -n 1)
+            fi
+          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            if [ -f "src-tauri/target/aarch64-apple-darwin/release/longlife-date" ]; then
+              BIN="src-tauri/target/aarch64-apple-darwin/release/longlife-date"
+            elif [ -f "src-tauri/target/release/longlife-date" ]; then
+              BIN="src-tauri/target/release/longlife-date"
+            else
+              BIN=$(find src-tauri/target -type f -name "longlife-date" -not -path "*/deps/*" | head -n 1)
+            fi
+          else
+            if [ -f "src-tauri/target/release/longlife-date" ]; then
+              BIN="src-tauri/target/release/longlife-date"
+            else
+              BIN=$(find src-tauri/target/release -maxdepth 1 -type f -name "longlife-date" -not -path "*/deps/*" | head -n 1)
+            fi
+          fi
+
+          if [ -z "$BIN" ] || [ ! -f "$BIN" ]; then
+            echo "::error::Executável compilado não foi encontrado em target/release!"
+            exit 1
+          fi
+
+          echo "Executável encontrado: $BIN"
+
+          # Obtenção do tamanho em bytes compatível com Linux, macOS e Windows Git Bash
+          if stat -c%s "$BIN" >/dev/null 2>&1; then
+            SIZE_BYTES=$(stat -c%s "$BIN")
+          elif stat -f%z "$BIN" >/dev/null 2>&1; then
+            SIZE_BYTES=$(stat -f%z "$BIN")
+          else
+            SIZE_BYTES=$(wc -c < "$BIN" | tr -d ' ')
+          fi
+
+          # Cálculo em Megabytes com duas casas decimais
+          SIZE_MB=$(awk "BEGIN {printf \"%.2f\", $SIZE_BYTES / 1048576}")
+          echo "=========================================================="
+          echo "Tamanho do executável: ${SIZE_MB} MB (${SIZE_BYTES} bytes)"
+          echo "=========================================================="
+
+          MIN_BYTES=1048576      # 1 MB
+          MAX_BYTES=52428800     # 50 MB
+
+          if [ "$SIZE_BYTES" -lt "$MIN_BYTES" ]; then
+            echo "::error::Tamanho do executável (${SIZE_MB} MB) é menor que 1 MB! Build suspeito ou corrompido."
+            exit 1
+          fi
+
+          if [ "$SIZE_BYTES" -gt "$MAX_BYTES" ]; then
+            echo "::warning::Tamanho do executável (${SIZE_MB} MB) excede 50 MB. Recomenda-se analisar fontes e assets."
+          else
+            echo "✓ Tamanho verificado e aprovado com sucesso (${SIZE_MB} MB)."
+          fi
+
+      # 9. Empacotamento Tauri e criação de Release Draft com os instaladores anexados
+      - name: Empacotar e Criar Draft Release no GitHub
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Longlife Date ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+          releaseBody: |
+            ## Longlife Date (lovelog) — Versão ${{ github.ref_name }} 💖
+
+            Aplicativo desktop simples, seguro e 100% offline para registrar e eternizar cada encontro do casal desde o primeiro dia.
+
+            ---
+
+            ### 📦 Instaladores Disponíveis
+
+            - **Windows (10/11 x64):**
+              - `*-setup.exe` (Instalador recomendado via NSIS)
+              - `*.msi` (Instalador corporativo/nativo Windows Installer)
+            - **Linux (x64):**
+              - `*.AppImage` (Executável portátil universal)
+              - `*.deb` (Instalador para Ubuntu, Debian e derivados)
+            - **macOS (Apple Silicon & Intel):**
+              - `*.dmg` (Imagem de disco montável)
+              - `*.app.tar.gz` (Aplicativo empacotado)
+
+            ---
+
+            ### 🛡️ Privacidade e Armazenamento 100% Local
+            - **Sem servidores ou telemetria:** nenhuma requisição de rede é executada em runtime (`connect-src 'none'`).
+            - **Banco de dados local:** SQLite embutido em `%APPDATA%\com.longlifedate.app\`.
+            - **Suas fotos pertencem a você:** as fotos permanecem isoladas na sua máquina local.
+
+            ---
+
+            ### ⚠️ Avisos de Segurança dos Sistemas Operacionais
+            Por ser um projeto de código aberto mantido pela comunidade sem certificado digital comercial pago:
+            - **Windows (SmartScreen):** Ao abrir, clique em *"Mais informações"* $\rightarrow$ *"Executar assim mesmo"*.
+            - **macOS (Gatekeeper):** Caso bloqueie, abra em *Ajustes do Sistema* $\rightarrow$ *Privacidade e Segurança* e clique em *"Abrir Mesmo Assim"*, ou clique com o botão direito no app e selecione *Abrir*.
+
+            ---
+
+            ### 🗑️ Instruções de Desinstalação
+            - **Windows:** Desinstale normalmente via *Configurações* $\rightarrow$ *Aplicativos Instalados*. Se desejar apagar histórico e fotos salvas, delete manualmente a pasta `%APPDATA%\com.longlifedate.app\`.
+            - **Linux:** Para `.deb`, execute `sudo apt remove lovelog`. No caso do `.AppImage`, basta deletar o arquivo executável e a pasta `~/.local/share/com.longlifedate.app/`.
+            - **macOS:** Mova o aplicativo da pasta *Aplicativos* para a Lixeira e delete `~/Library/Application Support/com.longlifedate.app/`.
+
+      # 10. Geração de checksums SHA256 dos instaladores gerados
+      - name: Gerar Checksums SHA256 dos Artefatos
+        shell: bash
+        run: |
+          echo "Calculando SHA256 dos bundles gerados..."
+          mkdir -p dist-checksums
+          find src-tauri/target -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.dmg" \) -not -path "*/deps/*" | while read -r file; do
+            filename=$(basename "$file")
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$file" > "dist-checksums/${filename}.sha256"
+            elif command -v shasum >/dev/null 2>&1; then
+              shasum -a 256 "$file" > "dist-checksums/${filename}.sha256"
+            fi
+            echo "Gerado checksum para $filename"
+          done
+

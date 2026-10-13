@@ -154,7 +154,6 @@ pub fn delete_encounter(conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
-
 pub fn delete_all_encounters(conn: &Connection) -> Result<()> {
     conn.execute("DELETE FROM encounters", [])
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -226,9 +225,7 @@ pub fn list_encounters_filtered(
     Ok(out)
 }
 
-
 // TESTES INICIAM AQUI
-
 
 #[cfg(test)]
 mod tests {

@@ -1,0 +1,57 @@
+# ==============================================================================
+# DADOS PESSOAIS E PRIVACIDADE — NUNCA VERSIONAR
+# ==============================================================================
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+photos/
+**/photos/
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.gif
+!src/assets/**
+!**/src/assets/**
+!src-tauri/icons/**
+!**/src-tauri/icons/**
+!docs/**/*.png
+!**/docs/**/*.png
+data/
+backups/
+*.bak
+*.zip
+
+# ==============================================================================
+# BUILD / DEPENDÊNCIAS / ARTEFATOS
+# ==============================================================================
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-checksums/
+**/dist-checksums/
+target/
+**/target/
+src-tauri/target/
+**/src-tauri/target/
+src-tauri/gen/
+**/src-tauri/gen/
+coverage/
+**/coverage/
+
+# ==============================================================================
+# AMBIENTE / SO / IDE
+# ==============================================================================
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+

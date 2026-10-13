@@ -1,0 +1,115 @@
+name: CI - Integração Contínua
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Testes e Verificação (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-22.04
+
+    steps:
+      # 1. Checkout do código-fonte
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      # Ajuste automático caso o projeto esteja na raiz ou na subpasta longlife-date
+      - name: Normalizar estrutura de diretórios
+        shell: bash
+        run: |
+          if [ ! -f "package.json" ] && [ -f "longlife-date/package.json" ]; then
+            echo "Movendo arquivos da subpasta longlife-date para a raiz do workspace..."
+            shopt -s dotglob
+            cp -r longlife-date/* .
+          fi
+
+      # 2. Dependências de sistema no Linux para compilação WebKit/GTK do Tauri 2
+      - name: Instalar dependências de sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # 3. Rust toolchain estável com componentes de lint e formatação
+      - name: Configurar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      # 4. Node.js 20 com cache npm
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      # 5. Cache de dependências e build do Rust para acelerar CI
+      - name: Configurar Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # 6. Instalação limpa de dependências do frontend
+      - name: Instalar dependências npm
+        run: npm ci
+
+      # 7. Lint do código frontend
+      - name: Executar Linter
+        run: npm run lint
+
+      # 8. Verificação de tipos TypeScript
+      - name: Checagem de Tipos TypeScript (tsc)
+        run: npx tsc --noEmit
+
+      # 9. Testes unitários do frontend com relatório de cobertura
+      - name: Testes Unitários Frontend com Cobertura
+        run: npm run test:unit -- --coverage
+
+      # 10. Formatação de código Rust
+      - name: Checar Formatação Rust (cargo fmt)
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      # 11. Clippy (linter Rust) tratando todos os avisos como erros
+      - name: Executar Clippy Rust
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
+
+      # 12. Testes unitários e de integração do backend Rust
+      - name: Executar Testes Rust (cargo test)
+        working-directory: src-tauri
+        run: cargo test
+
+  # Job opcional/documentado para testes E2E (requer display virtual e tauri-driver)
+  # e2e:
+  #   name: Testes E2E (Opcional)
+  #   needs: test
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Instalar tauri-driver
+  #       run: cargo install tauri-driver
+  #     - name: Executar suite WebdriverIO
+  #       run: npm run test:e2e
+
