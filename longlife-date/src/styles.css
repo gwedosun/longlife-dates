@@ -1,104 +1,455 @@
+/* ==========================================================
+   LongLife Date — tema fofo, pastel, sem degradês
+   Títulos: cursiva (Pacifico) · Resto: sans-serif arredondada (Nunito)
+   Contraste: textos ≥ 4.5:1 · bordas de campos e foco ≥ 3:1
+   ========================================================== */
+
 :root {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light dark;
+
+  /* ---- Tipografia ---- */
+  --font-title: "Pacifico", "Segoe Script", "Brush Script MT", "Snell Roundhand", cursive;
+  --font-body: "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui,
+    -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-h1: clamp(2.2rem, 6vw, 3rem);
+  --fs-h2: 1.6rem;
+
+  /* ---- Formas ---- */
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-pill: 999px;
+  --border: 2px;
+
+  /* ---- Cores base (claro) ---- */
+  --bg: #fff6ef;            /* creme pêssego */
+  --surface: #ffffff;
+  --ink: #46304d;           /* ameixa escura: 11:1 sobre o fundo */
+  --ink-soft: #675070;      /* texto secundário: 6.5:1 */
+  --placeholder: #76617f;   /* 5.6:1 sobre branco */
+  --field-border: #94769f;  /* borda dos campos: ≥ 3.2:1 sobre todos os fundos */
+  --focus: #6a42c2;         /* anel de foco: 5.5:1 */
+  --selection: #ffc4dc;
+
+  /* ---- Pastéis dos botões (texto sempre escuro) ---- */
+  --btn-line: #5a3d63;
+  --btn-ink: #3b1f42;
+  --pink: #ffb8d6;
+  --lavender: #d9ccff;
+  --mint: #bdeed6;
+  --danger-btn: #ffc2c8;
+  --danger-btn-ink: #6e1424;
+
+  /* ---- Cartões em tons pastel (fundo / contorno) ---- */
+  --tint-pink: #ffe3ee;
+  --line-pink: #f5b8d0;
+  --tint-lavender: #ece6ff;
+  --line-lavender: #cbbdf5;
+  --tint-mint: #def6ea;
+  --line-mint: #a9dcc3;
+  --tint-peach: #ffeadb;
+  --line-peach: #f5c8a6;
+  --tint-sky: #e0f0ff;
+  --line-sky: #a8cdee;
+  --tint-butter: #fff6c9;
+  --line-butter: #ecd980;
+  --tint-danger: #ffe1e3;
+  --line-danger: #f2a6ae;
+  --danger-ink: #7d1d2c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #2a2231;
+    --surface: #382e41;
+    --ink: #fbeff6;
+    --ink-soft: #dcc9e3;
+    --placeholder: #c7b2d0;
+    --field-border: #a58ab2;
+    --focus: #c9b3ff;
+    --selection: #6a4a78;
+
+    --tint-pink: #4b3347;
+    --line-pink: #7a4d6c;
+    --tint-lavender: #3f3a5e;
+    --line-lavender: #62599a;
+    --tint-mint: #33483f;
+    --line-mint: #4f7a66;
+    --tint-peach: #50403a;
+    --line-peach: #86624f;
+    --tint-sky: #33465a;
+    --line-sky: #52769a;
+    --tint-butter: #4d4630;
+    --line-butter: #857a44;
+    --tint-danger: #53303a;
+    --line-danger: #8a4a58;
+    --danger-ink: #ffd6da;
+  }
+}
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  padding: 1.5rem;
-  background: #fafaf8;
-  color: #1a1a1a;
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(1rem, 4vw, 1.5rem) 3rem;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+::selection {
+  background: var(--selection);
+  color: var(--ink);
+}
+
+/* ---------- Títulos (cursiva) ---------- */
+
+h1,
+h2 {
+  font-family: var(--font-title);
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--ink);
 }
 
 h1 {
-  font-size: 1.5rem;
-  margin: 0 0 1rem;
+  display: inline-block;
+  margin: 0 0 1.25rem;
+  padding: 0 0.3em;
+  font-size: var(--fs-h1);
+  /* marca-texto rosa, cor sólida (sem degradê) */
+  box-shadow: inset 0 -0.42em 0 var(--pink);
+  border-radius: 6px;
 }
+
+h1::after {
+  content: " ♡";
+  content: " ♡" / "";
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: var(--fs-h2);
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+strong {
+  font-weight: 800;
+}
+
+/* ---------- Formulário ---------- */
 
 form {
   display: grid;
-  gap: 0.5rem;
-  max-width: 480px;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--tint-pink);
+  border: var(--border) solid var(--line-pink);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 5px 0 var(--line-pink);
 }
 
 form label {
   display: grid;
-  gap: 0.25rem;
-  font-size: 0.85rem;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 input,
-textarea,
-button {
+textarea {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
   font: inherit;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--border) solid var(--field-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-button {
-  cursor: pointer;
-  background: #1a1a1a;
-  color: white;
-  border: none;
-  width: fit-content;
-  padding: 0.5rem 1rem;
+textarea {
+  min-height: 6.5rem;
+  resize: vertical;
 }
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+input:hover,
+textarea:hover {
+  border-color: var(--ink-soft);
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus);
+  outline: none;
+}
+
+/* botão "escolher arquivo" do campo de foto */
+input[type="file"] {
+  padding: 0.45rem;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--btn-ink);
+  background: var(--lavender);
+  border: var(--border) solid var(--btn-line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+/* ---------- Botões ---------- */
+
+button,
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0.6rem 1.25rem;
+  font: inherit;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--btn-ink);
+  background: var(--lavender);
+  border: var(--border) solid var(--btn-line);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 3px 0 var(--btn-line);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+button:hover,
+.file-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--btn-line);
+}
+
+button:active,
+.file-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--btn-line);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 3px 0 var(--btn-line);
+}
+
+/* "Salvar" — ação principal */
+form button[type="submit"] {
+  justify-self: start;
+  padding-inline: 1.75rem;
+  background: var(--pink);
+}
+
+/* ---------- Foco visível (teclado) ---------- */
+
+button:focus-visible,
+input[type="file"]:focus-visible,
+.file-btn:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* ---------- Filtros ---------- */
+
+#filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.5rem 0 1rem;
+  padding: 1rem;
+  background: var(--tint-butter);
+  border: var(--border) solid var(--line-butter);
+  border-radius: var(--radius-lg);
+}
+
+#filters input {
+  flex: 1 1 10rem;
+  min-width: 0;
+  width: auto;
+}
+
+#filters button {
+  background: var(--mint);
+}
+
+/* ---------- Status ---------- */
 
 #status {
-  min-height: 1.2rem;
-  color: #a00;
+  min-height: 1.5rem;
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+  color: var(--danger-ink);
 }
 
+/* ---------- Lista de encontros ---------- */
+
 ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 1.5rem;
   display: grid;
-  gap: 0.5rem;
-  max-width: 640px;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  background: white;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--tint, var(--tint-pink));
+  border: var(--border) solid var(--tint-line, var(--line-pink));
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 0 var(--tint-line, var(--line-pink));
 }
 
+/* cada cartão ganha um pastel diferente, como post-its */
+li:nth-child(5n + 1) { --tint: var(--tint-pink);     --tint-line: var(--line-pink); }
+li:nth-child(5n + 2) { --tint: var(--tint-lavender); --tint-line: var(--line-lavender); }
+li:nth-child(5n + 3) { --tint: var(--tint-mint);     --tint-line: var(--line-mint); }
+li:nth-child(5n + 4) { --tint: var(--tint-peach);    --tint-line: var(--line-peach); }
+li:nth-child(5n + 5) { --tint: var(--tint-sky);      --tint-line: var(--line-sky); }
+
 li span {
-  flex: 1;
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 li button {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.8rem;
-  background: #444;
+  padding: 0.35rem 0.9rem;
+  font-size: var(--fs-small);
 }
 
-#filters {
+/* "ver foto" */
+li button {
+  background: var(--mint);
+}
+
+/* "apagar" é sempre o último botão do item */
+li button:last-child {
+  background: var(--danger-btn);
+  color: var(--danger-btn-ink);
+}
+
+/* ---------- Divisores ---------- */
+
+hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 3px dotted var(--field-border);
+}
+
+/* ---------- Backup ---------- */
+
+#backup {
   display: flex;
-  gap: 0.5rem;
-  margin: 1rem 0;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--tint-lavender);
+  border: var(--border) solid var(--line-lavender);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 5px 0 var(--line-lavender);
 }
-#filters input {
-  flex: 1;
-  min-width: 140px;
+
+#backup h2 {
+  flex: 1 0 100%;
+  margin: 0;
 }
-.file-btn {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: #1a1a1a;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
+
+#backup .file-btn {
+  background: var(--mint);
+}
+
+/* ---------- Zona de perigo ---------- */
+/* !important só porque o main.ts define estilos inline nestes elementos.
+   Se remover os style="..." do HTML, pode tirar os !important. */
+
+#danger-zone {
+  padding: 1.25rem;
+  background: var(--tint-danger);
+  border: var(--border) dashed var(--line-danger);
+  border-radius: var(--radius-lg);
+}
+
+#danger-zone h2 {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-h2) !important;
+  color: var(--danger-ink) !important;
+}
+
+#danger-zone p {
+  font-size: var(--fs-small) !important;
+  color: var(--ink) !important;
+}
+
+#danger-zone #delete-all {
+  background: var(--danger-btn) !important;
+  color: var(--danger-btn-ink);
+}
+
+/* ---------- Telas pequenas ---------- */
+
+@media (max-width: 30rem) {
+  form button[type="submit"],
+  #filters button {
+    width: 100%;
+  }
+}
+
+/* ---------- Movimento reduzido ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  button:hover,
+  .file-btn:hover,
+  button:active,
+  .file-btn:active {
+    transform: none;
+  }
 }

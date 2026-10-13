@@ -1,3 +1,4 @@
+import "@fontsource/pacifico"; import "@fontsource/nunito/400.css"; import "@fontsource/nunito/700.css"; import "@fontsource/nunito/800.css";
 import "./styles.css";
 import { isoToBr, parseBrDate } from "./domain/date";
 import {
