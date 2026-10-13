@@ -32,7 +32,7 @@ const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("#app não encontrado no index.html");
 
 app.innerHTML = `
-  <h1>LongLife Date</h1>
+  <h1>lovelog</h1>
 
   <form id="form">
     <label>Data <input name="dateBr" placeholder="DD/MM/AAAA" required /></label>
@@ -271,7 +271,7 @@ exportBtn.addEventListener("click", async () => {
     const a = document.createElement("a");
     const stamp = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `longlife-backup-${stamp}.json`;
+    a.download = `lovelog-backup-${stamp}.json`;
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {

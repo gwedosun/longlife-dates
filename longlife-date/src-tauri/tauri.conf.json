@@ -1,39 +1,40 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "longlife-date",
-  "version": "0.1.0",
+  "productName": "lovelog - desde o primeiro dia",
+  "version": "1.0.0",
   "identifier": "com.longlifedate.app",
-
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
-
   "app": {
     "windows": [
       {
-        "title": "LongLife Date",
+        "title": "lovelog",
         "width": 900,
         "height": 700,
         "resizable": true
       }
     ],
-  "security": {
-    "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"
-  }
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
   },
-
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["msi", "nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [],
+    "copyright": "© 2026 — MIT",
+    "category": "Utility",
+    "shortDescription": "Registre todos os seus encontros, offline e privado.",
+    "longDescription": "App desktop 100% local para registrar encontros desde o dia 1."
   }
 }
