@@ -379,4 +379,28 @@ mod tests {
         .is_empty());
         let _ = fs::remove_dir_all(&dir);
     }
+
+    // UT-32: atualizar encontro inexistente retorna NotFound e não grava foto
+    #[test]
+    fn test_update_nonexistent_returns_not_found() {
+        let (conn, dir) = setup();
+        let png = fake_png();
+
+        let err = update_encounter(
+            &conn,
+            &dir,
+            9999,
+            "2024-05-20",
+            "Cinema",
+            "Desc",
+            Some(&png),
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, AppError::NotFound));
+        let entries: Vec<_> = fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).collect();
+        assert!(entries.is_empty(), "nenhuma foto deveria sobrar");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

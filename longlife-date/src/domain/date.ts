@@ -76,3 +76,45 @@ export function parseBrDate(br: string): BrDateResult {
 
   return { ok: true, iso };
 }
+
+/**
+ * Formatação de data ISO para PT-BR por extenso: "14 de fevereiro de 2024" (UT-18).
+ * Não sofre com problemas de fuso horário local.
+ */
+export function formatDate(iso: string): string {
+  if (!isValidIsoDate(iso)) {
+    throw new Error(`Data ISO inválida: ${iso}`);
+  }
+  const [y, m, d] = iso.split("-").map(Number);
+  const months = [
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+  ];
+  return `${d} de ${months[m - 1]} de ${y}`;
+}
+
+/**
+ * UT-19: Contador de dias entre duas datas ISO.
+ * daysSince("2024-01-01", "2024-01-11") => 10
+ */
+export function daysSince(first: string, today: string): number {
+  if (!isValidIsoDate(first) || !isValidIsoDate(today)) {
+    throw new Error("Data ISO inválida");
+  }
+  const [y1, m1, d1] = first.split("-").map(Number);
+  const [y2, m2, d2] = today.split("-").map(Number);
+  const t1 = Date.UTC(y1, m1 - 1, d1);
+  const t2 = Date.UTC(y2, m2 - 1, d2);
+  const diffMs = t2 - t1;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}

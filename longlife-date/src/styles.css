@@ -328,12 +328,12 @@ ul {
   list-style: none;
 }
 
-li {
+li, .encounter-card {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.6rem;
-  padding: 0.9rem 1.1rem;
+  padding: 1rem 1.25rem;
   background: var(--tint, var(--tint-pink));
   border: var(--border) solid var(--tint-line, var(--line-pink));
   border-radius: var(--radius-lg);
@@ -341,32 +341,101 @@ li {
 }
 
 /* cada cartão ganha um pastel diferente, como post-its */
-li:nth-child(5n + 1) { --tint: var(--tint-pink);     --tint-line: var(--line-pink); }
-li:nth-child(5n + 2) { --tint: var(--tint-lavender); --tint-line: var(--line-lavender); }
-li:nth-child(5n + 3) { --tint: var(--tint-mint);     --tint-line: var(--line-mint); }
-li:nth-child(5n + 4) { --tint: var(--tint-peach);    --tint-line: var(--line-peach); }
-li:nth-child(5n + 5) { --tint: var(--tint-sky);      --tint-line: var(--line-sky); }
+li:nth-child(5n + 1), .encounter-card:nth-child(5n + 1) { --tint: var(--tint-pink);     --tint-line: var(--line-pink); }
+li:nth-child(5n + 2), .encounter-card:nth-child(5n + 2) { --tint: var(--tint-lavender); --tint-line: var(--line-lavender); }
+li:nth-child(5n + 3), .encounter-card:nth-child(5n + 3) { --tint: var(--tint-mint);     --tint-line: var(--line-mint); }
+li:nth-child(5n + 4), .encounter-card:nth-child(5n + 4) { --tint: var(--tint-peach);    --tint-line: var(--line-peach); }
+li:nth-child(5n + 5), .encounter-card:nth-child(5n + 5) { --tint: var(--tint-sky);      --tint-line: var(--line-sky); }
 
-li span {
-  flex: 1 1 14rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-weight: 700;
+  border-bottom: 1px dashed var(--tint-line, var(--line-pink));
+  padding-bottom: 0.35rem;
 }
 
-li button {
+.card-date {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.card-location {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.card-photo {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  font-size: 1.3rem;
+  opacity: 0.6;
+}
+
+.card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.card-description {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+li button, .card-actions button {
   padding: 0.35rem 0.9rem;
   font-size: var(--fs-small);
 }
 
-/* "ver foto" */
-li button {
-  background: var(--mint);
+.btn-edit {
+  background: var(--lavender) !important;
+  color: var(--ink) !important;
 }
 
-/* "apagar" é sempre o último botão do item */
-li button:last-child {
-  background: var(--danger-btn);
-  color: var(--danger-btn-ink);
+.btn-delete, li button:last-child {
+  background: var(--danger-btn) !important;
+  color: var(--danger-btn-ink) !important;
+}
+
+.btn-view-photo {
+  background: var(--mint) !important;
+  color: var(--ink) !important;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+  background: var(--tint-lavender);
+  border: var(--border) dashed var(--line-lavender);
+  border-radius: var(--radius-lg);
 }
 
 /* ---------- Divisores ---------- */

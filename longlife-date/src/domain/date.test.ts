@@ -75,3 +75,32 @@ describe("parseBrDate", () => {
     expect(parseBrDate("31/02/2024")).toEqual({ ok: false, error: "nonexistent" });
   });
 });
+
+import { formatDate, daysSince } from "./date";
+
+// ---------- UT-18: Formatação de data PT-BR ----------
+describe("formatDate (UT-18)", () => {
+  it("formata data ISO para extenso em PT-BR sem off-by-one", () => {
+    expect(formatDate("2024-02-14")).toBe("14 de fevereiro de 2024");
+    expect(formatDate("2024-01-01")).toBe("1 de janeiro de 2024");
+    expect(formatDate("2024-12-31")).toBe("31 de dezembro de 2024");
+  });
+
+  it("lança erro com data ISO inválida", () => {
+    expect(() => formatDate("invalida")).toThrow();
+    expect(() => formatDate("2023-02-29")).toThrow();
+  });
+});
+
+// ---------- UT-19: Contador 'dias juntos' ----------
+describe("daysSince (UT-19)", () => {
+  it("calcula a diferença correta de dias", () => {
+    expect(daysSince("2024-01-01", "2024-01-11")).toBe(10);
+    expect(daysSince("2024-02-01", "2024-03-01")).toBe(29); // 2024 é bissexto
+    expect(daysSince("2024-01-01", "2024-01-01")).toBe(0);
+  });
+
+  it("lança erro para datas inválidas", () => {
+    expect(() => daysSince("invalid", "2024-01-01")).toThrow();
+  });
+});

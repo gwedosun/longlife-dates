@@ -1,4 +1,7 @@
-import "@fontsource/pacifico"; import "@fontsource/nunito/400.css"; import "@fontsource/nunito/700.css"; import "@fontsource/nunito/800.css";
+import "@fontsource/pacifico";
+import "@fontsource/nunito/400.css";
+import "@fontsource/nunito/700.css";
+import "@fontsource/nunito/800.css";
 import "./styles.css";
 import { isoToBr, parseBrDate } from "./domain/date";
 import {
@@ -10,15 +13,21 @@ import {
   listEncounters,
   mimeFromFilename,
   readPhoto,
+  updateEncounter,
 } from "./api/encounters";
 import { EncounterStore } from "./state/store";
 import type { Encounter } from "./domain/types";
+import { renderCard } from "./views/card";
+import { validateForm } from "./domain/form";
 
 const store = new EncounterStore();
 
 // ============================================================
-// Estado local de filtros (fora do store; é só UI)
+// Estado local de filtros e edição
 // ============================================================
+let editingId: number | null = null;
+let sortDesc: boolean = false; // RN07: padrão cronológico crescente (ASC)
+
 let filters: { query: string; fromBr: string; toBr: string } = {
   query: "",
   fromBr: "",
@@ -34,18 +43,24 @@ if (!app) throw new Error("#app não encontrado no index.html");
 app.innerHTML = `
   <h1>lovelog</h1>
 
+  <div id="editing-banner" style="display:none;align-items:center;justify-content:space-between;margin-bottom:0.75rem;padding:0.6rem 1rem;background:var(--tint-lavender);border:var(--border) solid var(--line-lavender);border-radius:var(--radius-md);">
+    <span>✏️ <strong>Editando encontro:</strong> <span id="editing-info"></span></span>
+    <button id="cancel-edit" type="button" style="padding:0.3rem 0.75rem;font-size:var(--fs-small);background:var(--tint-peach);">Cancelar edição</button>
+  </div>
+
   <form id="form">
     <label>Data <input name="dateBr" placeholder="DD/MM/AAAA" required /></label>
     <label>Local <input name="location" placeholder="Local" required maxlength="120" /></label>
     <label>Descrição <textarea name="description" maxlength="5000"></textarea></label>
     <label>Foto (opcional) <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" /></label>
-    <button type="submit">Salvar</button>
+    <button id="submit-btn" type="submit">Salvar</button>
   </form>
 
   <section id="filters">
     <input id="f-query" placeholder="Buscar em local ou descrição" />
     <input id="f-from" placeholder="De (DD/MM/AAAA)" />
     <input id="f-to" placeholder="Até (DD/MM/AAAA)" />
+    <button id="f-order" type="button" title="Alternar ordenação cronológica">⬆️ Antigos primeiro (ASC)</button>
     <button id="f-clear" type="button">Limpar filtros</button>
   </section>
 
@@ -73,12 +88,18 @@ app.innerHTML = `
 `;
 
 const form = document.querySelector<HTMLFormElement>("#form")!;
+const submitBtn = document.querySelector<HTMLButtonElement>("#submit-btn")!;
+const editingBanner = document.querySelector<HTMLDivElement>("#editing-banner")!;
+const editingInfo = document.querySelector<HTMLSpanElement>("#editing-info")!;
+const cancelEditBtn = document.querySelector<HTMLButtonElement>("#cancel-edit")!;
+
 const listEl = document.querySelector<HTMLUListElement>("#list")!;
 const statusEl = document.querySelector<HTMLParagraphElement>("#status")!;
 
 const fQuery = document.querySelector<HTMLInputElement>("#f-query")!;
 const fFrom = document.querySelector<HTMLInputElement>("#f-from")!;
 const fTo = document.querySelector<HTMLInputElement>("#f-to")!;
+const fOrder = document.querySelector<HTMLButtonElement>("#f-order")!;
 const fClear = document.querySelector<HTMLButtonElement>("#f-clear")!;
 
 const exportBtn = document.querySelector<HTMLButtonElement>("#export")!;
@@ -108,65 +129,96 @@ function showPhotoModal(dataUrl: string, caption: string): void {
   document.body.appendChild(overlay);
 }
 
+function resetEditState(): void {
+  editingId = null;
+  form.reset();
+  submitBtn.textContent = "Salvar";
+  editingBanner.style.display = "none";
+  editingInfo.textContent = "";
+}
+
+cancelEditBtn.addEventListener("click", resetEditState);
+
 // ============================================================
-// Render
+// Render (com suporte completo a edição, exclusão e visualização)
 // ============================================================
 function render(encounters: Encounter[], loading: boolean, error: string | null): void {
   statusEl.textContent = loading ? "Carregando..." : error ? `Erro: ${error}` : "";
   listEl.innerHTML = "";
 
+  if (!loading && !error && encounters.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Registre o primeiro encontro de vocês 💕";
+    listEl.appendChild(empty);
+    return;
+  }
+
   for (const e of encounters) {
-    const li = document.createElement("li");
-    li.dataset.id = String(e.id);
-
-    const text = document.createElement("span");
-    text.textContent = `${isoToBr(e.date)} — ${e.location} — ${e.description || "(sem descrição)"}`;
-    li.appendChild(text);
-
-    if (e.photoFile) {
-      const btnView = document.createElement("button");
-      btnView.type = "button";
-      btnView.textContent = "ver foto";
-      btnView.addEventListener("click", async () => {
+    const card = renderCard(e, {
+      onEdit: (encounter) => {
+        editingId = encounter.id;
+        (form.elements.namedItem("dateBr") as HTMLInputElement).value = isoToBr(encounter.date);
+        (form.elements.namedItem("location") as HTMLInputElement).value = encounter.location;
+        (form.elements.namedItem("description") as HTMLTextAreaElement).value = encounter.description;
+        submitBtn.textContent = "Atualizar encontro";
+        editingInfo.textContent = `${isoToBr(encounter.date)} — ${encounter.location}`;
+        editingBanner.style.display = "flex";
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+        (form.elements.namedItem("location") as HTMLInputElement).focus();
+      },
+      onDelete: async (encounter) => {
+        const ok = window.confirm(
+          `Apagar o encontro de ${isoToBr(encounter.date)} em "${encounter.location}"?`,
+        );
+        if (!ok) return;
         try {
-          const b64 = await readPhoto(e.photoFile!);
-          const mime = mimeFromFilename(e.photoFile!);
-          showPhotoModal(`data:${mime};base64,${b64}`, `${isoToBr(e.date)} — ${e.location}`);
+          await deleteEncounter(encounter.id);
+          if (editingId === encounter.id) {
+            resetEditState();
+          }
+          await refresh();
+        } catch (err) {
+          alert(`Falha ao apagar: ${err}`);
+        }
+      },
+      onViewPhoto: async (encounter) => {
+        if (!encounter.photoFile) return;
+        try {
+          const b64 = await readPhoto(encounter.photoFile);
+          const mime = mimeFromFilename(encounter.photoFile);
+          showPhotoModal(`data:${mime};base64,${b64}`, `${isoToBr(encounter.date)} — ${encounter.location}`);
         } catch (err) {
           alert(`Falha ao abrir foto: ${err}`);
         }
-      });
-      li.appendChild(btnView);
+      },
+    });
+
+    // Se tiver foto, carrega miniatura assincronamente
+    if (e.photoFile) {
+      const imgEl = card.querySelector<HTMLImageElement>("img.card-photo");
+      if (imgEl) {
+        readPhoto(e.photoFile)
+          .then((b64) => {
+            const mime = mimeFromFilename(e.photoFile!);
+            imgEl.src = `data:${mime};base64,${b64}`;
+          })
+          .catch(() => {
+            // Se falhar a miniatura, não bloqueia a UI
+          });
+      }
     }
 
-    const btnDel = document.createElement("button");
-    btnDel.type = "button";
-    btnDel.textContent = "apagar";
-    btnDel.addEventListener("click", async () => {
-      const ok = window.confirm(
-        `Apagar o encontro de ${isoToBr(e.date)} em "${e.location}"?`,
-      );
-      if (!ok) return;
-      try {
-        await deleteEncounter(e.id);
-        await refresh();
-      } catch (err) {
-        alert(`Falha ao apagar: ${err}`);
-      }
-    });
-    li.appendChild(btnDel);
-
-    listEl.appendChild(li);
+    listEl.appendChild(card);
   }
 }
 
 // ============================================================
-// Refresh (aplica filtros)
+// Refresh (aplica filtros e ordenação RN07)
 // ============================================================
 async function refresh(): Promise<void> {
   store.setLoading(true);
   try {
-    // converte filtros BR → ISO, se preenchidos
     let fromIso: string | undefined;
     let toIso: string | undefined;
 
@@ -185,7 +237,7 @@ async function refresh(): Promise<void> {
       query: filters.query || undefined,
       from: fromIso,
       to: toIso,
-      desc: true,
+      desc: sortDesc,
     });
     store.setEncounters(list);
   } catch (err) {
@@ -198,7 +250,7 @@ async function refresh(): Promise<void> {
 store.subscribe((s) => render(s.encounters, s.loading, s.error));
 
 // ============================================================
-// Filtros — botão "Aplicar" implícito: recalcula em cada tecla (debounce simples)
+// Filtros e Ordenação (RN07)
 // ============================================================
 let debounce: number | undefined;
 function scheduleRefresh(): void {
@@ -217,6 +269,14 @@ fQuery.addEventListener("input", scheduleRefresh);
 fFrom.addEventListener("input", scheduleRefresh);
 fTo.addEventListener("input", scheduleRefresh);
 
+fOrder.addEventListener("click", () => {
+  sortDesc = !sortDesc;
+  fOrder.textContent = sortDesc
+    ? "⬇️ Recentes primeiro (DESC)"
+    : "⬆️ Antigos primeiro (ASC)";
+  void refresh();
+});
+
 fClear.addEventListener("click", () => {
   fQuery.value = "";
   fFrom.value = "";
@@ -226,7 +286,7 @@ fClear.addEventListener("click", () => {
 });
 
 // ============================================================
-// Form de criação
+// Form de criação e edição (Prioridade Máxima: Edição)
 // ============================================================
 form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -234,34 +294,53 @@ form.addEventListener("submit", async (ev) => {
   const dateBr = String(data.get("dateBr") ?? "").trim();
   const location = String(data.get("location") ?? "").trim();
   const description = String(data.get("description") ?? "");
+  const file = (form.elements.namedItem("photo") as HTMLInputElement)?.files?.[0];
 
-  const parsed = parseBrDate(dateBr);
-  if (!parsed.ok) {
-    alert(parsed.error === "format"
-      ? "Formato inválido. Use DD/MM/AAAA."
-      : "Essa data não existe no calendário.");
-    return;
-  }
-  if (!location) {
-    alert("Local é obrigatório.");
+  const validation = validateForm({
+    dateBr,
+    location,
+    description,
+    photo: file ? { size: file.size, type: file.type } : null,
+  });
+
+  if (!validation.valid) {
+    const firstError = Object.values(validation.errors)[0];
+    alert(firstError);
     return;
   }
 
   let photoBytes: Uint8Array | null = null;
-  const file = (form.elements.namedItem("photo") as HTMLInputElement)?.files?.[0];
-  if (file) photoBytes = await readFileBytes(file);
+  if (file) {
+    photoBytes = await readFileBytes(file);
+  }
 
   try {
-    await createEncounter({ date: parsed.iso, location, description, photoBytes });
-    form.reset();
+    if (editingId !== null) {
+      await updateEncounter({
+        id: editingId,
+        date: validation.data.dateIso,
+        location: validation.data.location,
+        description: validation.data.description,
+        newPhotoBytes: photoBytes,
+      });
+      resetEditState();
+    } else {
+      await createEncounter({
+        date: validation.data.dateIso,
+        location: validation.data.location,
+        description: validation.data.description,
+        photoBytes,
+      });
+      form.reset();
+    }
     await refresh();
   } catch (err) {
-    alert(String(err));
+    alert(`Erro ao salvar: ${err}`);
   }
 });
 
 // ============================================================
-// Backup — exportar
+// Backup — exportar (RN10)
 // ============================================================
 exportBtn.addEventListener("click", async () => {
   try {
@@ -280,7 +359,7 @@ exportBtn.addEventListener("click", async () => {
 });
 
 // ============================================================
-// Backup — importar
+// Backup — importar (RN11)
 // ============================================================
 importInput.addEventListener("change", async () => {
   const file = importInput.files?.[0];
@@ -304,6 +383,7 @@ importInput.addEventListener("change", async () => {
   try {
     const text = await file.text();
     const count = await importBackup(text);
+    if (editingId !== null) resetEditState();
     await refresh();
     alert(`Backup restaurado: ${count} encontro(s).`);
   } catch (err) {
@@ -314,7 +394,7 @@ importInput.addEventListener("change", async () => {
 });
 
 // ============================================================
-// Apagar tudo
+// Apagar tudo / Excluir conta (RN12)
 // ============================================================
 deleteAllBtn.addEventListener("click", async () => {
   const first = window.confirm(
@@ -330,6 +410,7 @@ deleteAllBtn.addEventListener("click", async () => {
 
   try {
     await deleteAllData();
+    if (editingId !== null) resetEditState();
     await refresh();
     alert("Todos os dados foram apagados.");
   } catch (err) {
