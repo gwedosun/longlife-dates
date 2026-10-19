@@ -127,7 +127,7 @@ try {
 
     # Atualiza Cargo.toml (somente o campo version do [package])
     $CargoContent = Get-Content $CargoTomlPath -Raw
-    $CargoUpdated = $CargoContent -replace '(?ms)(\[package\][\s\S]*?version\s*=\s*")[^"]+(")', "`$1$NewVersion`$2"
+    $CargoUpdated = $CargoContent -replace '(?ms)(\[package\][\s\S]*?version\s*=\s*")[^"]+(")', "`${1}$NewVersion`${2}"
     Set-Content -Path $CargoTomlPath -Value $CargoUpdated -Encoding utf8
 
     Write-SuccessMessage "Versão sincronizada em package.json, tauri.conf.json e Cargo.toml."
@@ -139,6 +139,7 @@ try {
     Push-Location $ProjectDir
     try {
         npm run lint
+        if ($LASTEXITCODE -ne 0) { throw "Falha no linter frontend." }
     } finally {
         Pop-Location
     }
@@ -147,6 +148,7 @@ try {
     Push-Location $ProjectDir
     try {
         npx tsc --noEmit
+        if ($LASTEXITCODE -ne 0) { throw "Falha na verificação de tipos TypeScript." }
     } finally {
         Pop-Location
     }
@@ -155,6 +157,7 @@ try {
     Push-Location $ProjectDir
     try {
         npm run test:unit
+        if ($LASTEXITCODE -ne 0) { throw "Falha nos testes unitários do frontend." }
     } finally {
         Pop-Location
     }
@@ -163,6 +166,7 @@ try {
     Push-Location $SrcTauriDir
     try {
         cargo test
+        if ($LASTEXITCODE -ne 0) { throw "Falha nos testes do backend Rust." }
     } finally {
         Pop-Location
     }
