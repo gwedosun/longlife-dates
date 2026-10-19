@@ -1,0 +1,4 @@
+=== cargo fmt --check (exit code: 0) ===
+
+=== cargo clippy -- -D warnings (exit code: 0) ===
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.37s

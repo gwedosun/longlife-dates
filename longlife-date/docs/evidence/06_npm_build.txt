@@ -1,0 +1,54 @@
+
+> lovelog@1.0.0 build
+> tsc && vite build
+
+[36mvite v8.3.3 [32mbuilding client environment for production...[36m[39m
+transforming...
+Ô£ô 16 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                               0.40 kB Ôöé gzip: 0.27 kB
+dist/assets/nunito-vietnamese-700-normal-Ch8EUCfz.woff2       5.96 kB
+dist/assets/nunito-vietnamese-400-normal-BHkVbP3T.woff2       6.12 kB
+dist/assets/nunito-vietnamese-800-normal-D_CZYdm9.woff2       6.22 kB
+dist/assets/nunito-vietnamese-700-normal-C9SQsXvj.woff        8.07 kB
+dist/assets/nunito-vietnamese-400-normal-DtOtW02z.woff        8.24 kB
+dist/assets/nunito-vietnamese-800-normal-Dz0hZPb5.woff        8.30 kB
+dist/assets/nunito-cyrillic-400-normal-xAOo5cBP.woff2         8.46 kB
+dist/assets/nunito-cyrillic-800-normal-D3igD7Kl.woff2         8.49 kB
+dist/assets/nunito-cyrillic-700-normal-DP36NgGt.woff2         8.51 kB
+dist/assets/pacifico-vietnamese-400-normal-CLnUcRoK.woff      8.91 kB
+dist/assets/nunito-cyrillic-700-normal-DfHRUDv-.woff         10.40 kB
+dist/assets/nunito-cyrillic-400-normal-D1j0u8EH.woff         10.46 kB
+dist/assets/nunito-cyrillic-800-normal-DymMgApb.woff         10.46 kB
+dist/assets/nunito-cyrillic-ext-700-normal-BuR0mlCG.woff2    10.98 kB
+dist/assets/nunito-cyrillic-ext-400-normal-CuPM9foi.woff2    11.16 kB
+dist/assets/nunito-cyrillic-ext-800-normal-B-cvGohL.woff2    11.26 kB
+dist/assets/pacifico-vietnamese-400-normal-CNs27uJ4.woff2    11.33 kB
+dist/assets/nunito-cyrillic-ext-700-normal-DfoqN4Gs.woff     13.87 kB
+dist/assets/nunito-cyrillic-ext-800-normal-pjRatrRO.woff     14.06 kB
+dist/assets/nunito-cyrillic-ext-400-normal-xaE7D4Sw.woff     14.10 kB
+dist/assets/nunito-latin-ext-700-normal-BWeMsAzO.woff2       15.82 kB
+dist/assets/nunito-latin-ext-400-normal-i-8OOpdj.woff2       15.88 kB
+dist/assets/nunito-latin-700-normal-Dort48En.woff2           16.22 kB
+dist/assets/nunito-latin-ext-800-normal-CtU8tJOV.woff2       16.28 kB
+dist/assets/nunito-latin-400-normal-r8SDr6Up.woff2           16.31 kB
+dist/assets/nunito-latin-800-normal-Dz8SOQK_.woff2           16.52 kB
+dist/assets/pacifico-cyrillic-400-normal-BtlfDWif.woff       17.09 kB
+dist/assets/nunito-latin-700-normal-OcDqTBcA.woff            19.98 kB
+dist/assets/nunito-latin-400-normal-DKg4f3fz.woff            20.33 kB
+dist/assets/nunito-latin-800-normal-D-J0wlBY.woff            20.36 kB
+dist/assets/pacifico-cyrillic-ext-400-normal-BH1b5rOk.woff   20.86 kB
+dist/assets/nunito-latin-ext-700-normal-D4woHhbd.woff        21.00 kB
+dist/assets/nunito-latin-ext-400-normal-CjMJVfGn.woff        21.28 kB
+dist/assets/nunito-latin-ext-800-normal-CDcxIxx8.woff        21.42 kB
+dist/assets/pacifico-cyrillic-400-normal-DS5_g9Hw.woff2      22.89 kB
+dist/assets/pacifico-latin-ext-400-normal-nyRvH6_c.woff      25.63 kB
+dist/assets/pacifico-latin-400-normal-DArfF-vd.woff          27.10 kB
+dist/assets/pacifico-cyrillic-ext-400-normal-BuyJL26e.woff2  28.82 kB
+dist/assets/pacifico-latin-ext-400-normal-Ba3kv-va.woff2     31.08 kB
+dist/assets/pacifico-latin-400-normal-7HIToT7q.woff2         32.28 kB
+dist/assets/index-B8L7FhCL.css                               14.82 kB Ôöé gzip: 3.42 kB
+dist/assets/index-Dt64vYTL.js                                12.65 kB Ôöé gzip: 4.77 kB
+
+[32mÔ£ô built in 1.22s[39m

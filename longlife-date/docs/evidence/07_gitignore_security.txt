@@ -1,0 +1,3 @@
+.gitignore:4:*.db	longlife.db
+.gitignore:11:**/photos/	photos/a.jpg
+.gitignore:27:*.zip	backup.zip

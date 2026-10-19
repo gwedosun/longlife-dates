@@ -1,0 +1,27 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.0.4 [39m[90mC:/Users/gabi_/Documents/UCB/4 QUARTO SEMESTRE/TESTE DE SOFTWARE/longlife-date/longlife-date[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32mÔ£ô[39m src/domain/form.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32mÔ£ô[39m src/domain/date.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32mÔ£ô[39m src/state/store.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32mÔ£ô[39m src/views/card.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m      Tests [22m [1m[32m33 passed[39m[22m[90m (33)[39m
+[2m   Start at [22m 20:25:49
+[2m   Duration [22m 2.81s[2m (environment 87%, worker 6%, import 3%, tests 2%, transform 2%)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-----------|---------|----------|---------|---------|-------------------
+File       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------|---------|----------|---------|---------|-------------------
+All files  |    99.3 |    96.61 |     100 |   99.25 |                   
+ domain    |   98.46 |    97.77 |     100 |   98.38 |                   
+  date.ts  |     100 |      100 |     100 |     100 |                   
+  form.ts  |   96.29 |    95.83 |     100 |   96.29 | 44                
+ state     |     100 |      100 |     100 |     100 |                   
+  store.ts |     100 |      100 |     100 |     100 |                   
+ views     |     100 |    92.85 |     100 |     100 |                   
+  card.ts  |     100 |    92.85 |     100 |     100 | 64                
+-----------|---------|----------|---------|---------|-------------------
