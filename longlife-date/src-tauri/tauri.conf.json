@@ -1,6 +1,6 @@
 {
   "productName": "lovelog - desde o primeiro dia",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "identifier": "com.longlifedate.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -23,7 +23,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
+    "targets": [
+      "msi",
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

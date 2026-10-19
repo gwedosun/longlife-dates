@@ -1,6 +1,4 @@
-[package]
-name = "longlife-date"
-version = "1.0.0"
+$11.0.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -38,3 +36,4 @@ panic = "abort"
 strip = true
 
 # src-tauri/Cargo.toml
+
