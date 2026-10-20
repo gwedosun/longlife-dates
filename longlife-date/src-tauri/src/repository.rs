@@ -30,9 +30,64 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
         );
         CREATE INDEX IF NOT EXISTS idx_encounters_date ON encounters(date, id);
+
+        CREATE TABLE IF NOT EXISTS auth_profile (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            password_hash TEXT    NOT NULL,
+            salt          TEXT    NOT NULL,
+            created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+        );
+
         PRAGMA user_version = 1;
         "#
     ).map_err(|e| AppError::Database(e.to_string()))?;
+
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub struct AuthProfile {
+    pub id: i64,
+    pub password_hash: String,
+    pub salt: String,
+    pub created_at: String,
+}
+
+pub fn has_auth_profile(conn: &Connection) -> Result<bool> {
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM auth_profile", [], |row| row.get(0))
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    Ok(count > 0)
+}
+
+pub fn get_auth_profile(conn: &Connection) -> Result<Option<AuthProfile>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, password_hash, salt, created_at FROM auth_profile ORDER BY id DESC LIMIT 1",
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    stmt.query_row([], |row| {
+        Ok(AuthProfile {
+            id: row.get(0)?,
+            password_hash: row.get(1)?,
+            salt: row.get(2)?,
+            created_at: row.get(3)?,
+        })
+    })
+    .optional()
+    .map_err(|e| AppError::Database(e.to_string()))
+}
+
+pub fn save_auth_profile(conn: &Connection, password_hash: &str, salt: &str) -> Result<()> {
+    conn.execute("DELETE FROM auth_profile", [])
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    conn.execute(
+        "INSERT INTO auth_profile (password_hash, salt) VALUES (?1, ?2)",
+        params![password_hash, salt],
+    )
+    .map_err(|e| AppError::Database(e.to_string()))?;
 
     Ok(())
 }

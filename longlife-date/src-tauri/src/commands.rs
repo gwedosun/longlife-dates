@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use rusqlite::Connection;
 use tauri::{Manager, State};
 
-use crate::encounter_service;
+use crate::auth::{self, SessionState};
+use crate::error::AppError;
 use crate::models::Encounter;
 use crate::photo_store;
 
@@ -16,32 +18,90 @@ fn photos_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(photo_store::photos_dir(&base))
 }
 
+// ============================================================
+// Commands de Autenticação Local (100% Offline)
+// ============================================================
 
 #[tauri::command]
-pub fn save_photo_cmd(app: tauri::AppHandle, bytes: Vec<u8>) -> Result<String, String> {
+pub fn check_has_account(state: State<'_, Mutex<Connection>>) -> Result<bool, AppError> {
+    let conn = state
+        .lock()
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    auth::check_has_account(&conn)
+}
+
+#[tauri::command]
+pub fn setup_account(
+    state: State<'_, Mutex<Connection>>,
+    password: String,
+) -> Result<(), AppError> {
+    let conn = state
+        .lock()
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    auth::setup_account(&conn, &password)
+}
+
+#[tauri::command]
+pub fn login(
+    state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
+    password: String,
+) -> Result<bool, AppError> {
+    let conn = state
+        .lock()
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    auth::login(&conn, &session, &password)
+}
+
+#[tauri::command]
+pub fn logout(session: State<'_, SessionState>) -> Result<(), AppError> {
+    auth::logout(&session)
+}
+
+// ============================================================
+// Commands CRUD de Encontros e Fotos (Protegidos por Sessão)
+// ============================================================
+
+#[tauri::command]
+pub fn save_photo_cmd(
+    app: tauri::AppHandle,
+    session: State<'_, SessionState>,
+    bytes: Vec<u8>,
+) -> Result<String, String> {
+    session.require_auth().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
     photo_store::save_photo(&bytes, &root).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn delete_photo_cmd(app: tauri::AppHandle, filename: String) -> Result<(), String> {
+pub fn delete_photo_cmd(
+    app: tauri::AppHandle,
+    session: State<'_, SessionState>,
+    filename: String,
+) -> Result<(), String> {
+    session.require_auth().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
     photo_store::delete_photo(&filename, &root).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn get_photo_path_cmd(app: tauri::AppHandle, filename: String) -> Result<String, String> {
+pub fn get_photo_path_cmd(
+    app: tauri::AppHandle,
+    session: State<'_, SessionState>,
+    filename: String,
+) -> Result<String, String> {
+    session.require_auth().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
     photo_store::photo_path(&filename, &root)
         .map(|p| p.to_string_lossy().to_string())
         .map_err(|e| e.to_string())
 }
 
-
 #[tauri::command]
 pub fn create_encounter_cmd(
     app: tauri::AppHandle,
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
     date: String,
     location: String,
     description: String,
@@ -50,7 +110,8 @@ pub fn create_encounter_cmd(
     let conn = state.lock().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
 
-    encounter_service::create_encounter(
+    auth::guarded_create_encounter(
+        &session,
         &conn,
         &root,
         &date,
@@ -64,20 +125,24 @@ pub fn create_encounter_cmd(
 #[tauri::command]
 pub fn get_encounter_cmd(
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
     id: i64,
 ) -> Result<Encounter, String> {
     let conn = state.lock().map_err(|e| e.to_string())?;
-    encounter_service::get_encounter(&conn, id).map_err(|e| e.to_string())
+    auth::guarded_get_encounter(&session, &conn, id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn list_encounters_cmd(
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
     query: Option<String>,
     from: Option<String>,
     to: Option<String>,
     desc: bool,
 ) -> Result<Vec<Encounter>, String> {
+    session.require_auth().map_err(|e| e.to_string())?;
+
     // Valida datas do filtro — o backend não confia no frontend
     if let Some(d) = &from {
         crate::service::validate_date(d).map_err(|e| e.to_string())?;
@@ -93,13 +158,14 @@ pub fn list_encounters_cmd(
         to,
         desc,
     };
-    crate::encounter_service::list_encounters(&conn, &filter).map_err(|e| e.to_string())
+    auth::guarded_list_encounters(&session, &conn, &filter).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn update_encounter_cmd(
     app: tauri::AppHandle,
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
     id: i64,
     date: String,
     location: String,
@@ -109,7 +175,8 @@ pub fn update_encounter_cmd(
     let conn = state.lock().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
 
-    encounter_service::update_encounter(
+    auth::guarded_update_encounter(
+        &session,
         &conn,
         &root,
         id,
@@ -125,18 +192,22 @@ pub fn update_encounter_cmd(
 pub fn delete_encounter_cmd(
     app: tauri::AppHandle,
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
     id: i64,
 ) -> Result<(), String> {
     let conn = state.lock().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
 
-    encounter_service::delete_encounter(&conn, &root, id).map_err(|e| e.to_string())
+    auth::guarded_delete_encounter(&session, &conn, &root, id).map_err(|e| e.to_string())
 }
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
-
 #[tauri::command]
-pub fn read_photo_cmd(app: tauri::AppHandle, filename: String) -> Result<String, String> {
+pub fn read_photo_cmd(
+    app: tauri::AppHandle,
+    session: State<'_, SessionState>,
+    filename: String,
+) -> Result<String, String> {
+    session.require_auth().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
     let path = photo_store::photo_path(&filename, &root).map_err(|e| e.to_string())?;
     let bytes = std::fs::read(&path).map_err(|e| format!("ler foto: {e}"))?;
@@ -147,17 +218,20 @@ pub fn read_photo_cmd(app: tauri::AppHandle, filename: String) -> Result<String,
 pub fn delete_all_data_cmd(
     app: tauri::AppHandle,
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
 ) -> Result<(), String> {
     let conn = state.lock().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
-    crate::encounter_service::delete_all_data(&conn, &root).map_err(|e| e.to_string())
+    auth::guarded_delete_all_data(&session, &conn, &root).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn export_backup_cmd(
     app: tauri::AppHandle,
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
 ) -> Result<String, String> {
+    session.require_auth().map_err(|e| e.to_string())?;
     let conn = state.lock().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
     let backup = crate::backup::export(&conn, &root).map_err(|e| e.to_string())?;
@@ -168,8 +242,10 @@ pub fn export_backup_cmd(
 pub fn import_backup_cmd(
     app: tauri::AppHandle,
     state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
     json: String,
 ) -> Result<usize, String> {
+    session.require_auth().map_err(|e| e.to_string())?;
     let mut conn = state.lock().map_err(|e| e.to_string())?;
     let root = photos_root(&app)?;
     crate::backup::import(&mut conn, &root, &json).map_err(|e| e.to_string())

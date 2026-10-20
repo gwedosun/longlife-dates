@@ -1,7 +1,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum AppError {
     #[error("Data inválida ou em formato incorreto")]
     InvalidDate,
@@ -23,6 +23,18 @@ pub enum AppError {
 
     #[error("O nome do arquivo é inválido ou contém caracteres não permitidos")]
     InvalidFileName,
+
+    #[error("A senha deve ter pelo menos 4 caracteres")]
+    InvalidPassword,
+
+    #[error("Senha incorreta. Tente novamente.")]
+    InvalidCredentials,
+
+    #[error("Sessão bloqueada. Faça login para continuar.")]
+    Unauthorized,
+
+    #[error("A conta já foi configurada")]
+    AccountAlreadyExists,
 
     #[error("Erro no banco de dados: {0}")]
     Database(String),

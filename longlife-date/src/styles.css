@@ -496,6 +496,78 @@ hr {
   color: var(--danger-btn-ink);
 }
 
+/* ---------- Autenticação / Login Local ---------- */
+
+.auth-screen {
+  max-width: 28rem;
+  margin: 2rem auto;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.auth-header {
+  text-align: center;
+}
+
+.auth-subtitle {
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin: 0;
+}
+
+.auth-card {
+  background: var(--tint-lavender);
+  border: var(--border) solid var(--line-lavender);
+  box-shadow: 0 5px 0 var(--line-lavender);
+}
+
+.password-field-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.password-field-wrapper input {
+  flex: 1;
+}
+
+.btn-toggle-password {
+  padding: 0.55rem 0.9rem;
+  font-size: var(--fs-small);
+  background: var(--mint);
+  white-space: nowrap;
+}
+
+.auth-error {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--danger-ink);
+  background: var(--tint-danger);
+  border: var(--border) solid var(--line-danger);
+  border-radius: var(--radius-md);
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.app-topbar h1 {
+  margin: 0;
+}
+
+#logout-btn {
+  padding: 0.45rem 1rem;
+  font-size: var(--fs-small);
+  background: var(--tint-peach);
+}
+
 /* ---------- Telas pequenas ---------- */
 
 @media (max-width: 30rem) {

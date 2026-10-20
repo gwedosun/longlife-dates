@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 use tauri::Manager;
 
+pub mod auth;
 pub mod backup;
 pub mod commands;
 pub mod encounter_service;
@@ -32,10 +33,15 @@ pub fn run() {
             repository::migrate(&conn).map_err(|e| format!("migrate: {e}"))?;
 
             app.manage(Mutex::new(conn));
+            app.manage(auth::SessionState::new());
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::check_has_account,
+            commands::setup_account,
+            commands::login,
+            commands::logout,
             commands::save_photo_cmd,
             commands::delete_photo_cmd,
             commands::get_photo_path_cmd,
