@@ -549,6 +549,119 @@ hr {
   border-radius: var(--radius-md);
 }
 
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-forgot-password,
+.btn-secondary {
+  background: var(--tint-peach);
+  font-size: var(--fs-small);
+  padding: 0.5rem 1rem;
+}
+
+.recovery-code-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+  background: var(--tint-butter);
+  border: var(--border) solid var(--line-butter);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 5px 0 var(--line-butter);
+}
+
+.recovery-warning {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.recovery-code-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: var(--border) dashed var(--field-border);
+  border-radius: var(--radius-md);
+}
+
+#recovery-code-display {
+  font-family: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.btn-copy-code {
+  background: var(--mint);
+  font-size: var(--fs-small);
+  padding: 0.45rem 0.9rem;
+}
+
+.recovery-checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.recovery-checkbox-label input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 0;
+  accent-color: var(--focus);
+  cursor: pointer;
+}
+
+.factory-reset-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--tint-danger);
+  border: var(--border) dashed var(--line-danger);
+  border-radius: var(--radius-lg);
+}
+
+.factory-reset-card h2 {
+  margin: 0;
+  color: var(--danger-ink);
+}
+
+.factory-reset-card p {
+  margin: 0;
+  font-size: var(--fs-small);
+}
+
+.btn-danger {
+  background: var(--danger-btn) !important;
+  color: var(--danger-btn-ink) !important;
+}
+
+.factory-reset-confirm-box {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: var(--border) solid var(--line-danger);
+  border-radius: var(--radius-md);
+}
+
+.factory-reset-warning {
+  color: var(--danger-ink);
+  font-size: var(--fs-small);
+}
+
 .app-topbar {
   display: flex;
   align-items: center;

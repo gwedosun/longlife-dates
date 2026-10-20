@@ -30,6 +30,9 @@ pub enum AppError {
     #[error("Senha incorreta. Tente novamente.")]
     InvalidCredentials,
 
+    #[error("Código de recuperação inválido")]
+    InvalidRecoveryCode,
+
     #[error("Sessão bloqueada. Faça login para continuar.")]
     Unauthorized,
 

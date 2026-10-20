@@ -40,6 +40,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::check_has_account,
             commands::setup_account,
+            commands::reset_password_with_recovery_code,
+            commands::factory_reset_unauthenticated,
             commands::login,
             commands::logout,
             commands::save_photo_cmd,

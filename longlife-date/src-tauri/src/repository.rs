@@ -32,15 +32,27 @@ pub fn migrate(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_encounters_date ON encounters(date, id);
 
         CREATE TABLE IF NOT EXISTS auth_profile (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            password_hash TEXT    NOT NULL,
-            salt          TEXT    NOT NULL,
-            created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            password_hash      TEXT    NOT NULL,
+            recovery_code_hash TEXT    NOT NULL DEFAULT '',
+            salt               TEXT    NOT NULL DEFAULT '',
+            created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+            updated_at         TEXT    NOT NULL DEFAULT (datetime('now'))
         );
 
         PRAGMA user_version = 1;
         "#
     ).map_err(|e| AppError::Database(e.to_string()))?;
+
+    // Garante compatibilidade caso a tabela auth_profile tenha sido criada em versão anterior
+    let _ = conn.execute(
+        "ALTER TABLE auth_profile ADD COLUMN recovery_code_hash TEXT NOT NULL DEFAULT ''",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE auth_profile ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''",
+        [],
+    );
 
     Ok(())
 }
@@ -49,8 +61,10 @@ pub fn migrate(conn: &Connection) -> Result<()> {
 pub struct AuthProfile {
     pub id: i64,
     pub password_hash: String,
+    pub recovery_code_hash: String,
     pub salt: String,
     pub created_at: String,
+    pub updated_at: String,
 }
 
 pub fn has_auth_profile(conn: &Connection) -> Result<bool> {
@@ -63,7 +77,7 @@ pub fn has_auth_profile(conn: &Connection) -> Result<bool> {
 pub fn get_auth_profile(conn: &Connection) -> Result<Option<AuthProfile>> {
     let mut stmt = conn
         .prepare(
-            "SELECT id, password_hash, salt, created_at FROM auth_profile ORDER BY id DESC LIMIT 1",
+            "SELECT id, password_hash, recovery_code_hash, salt, created_at, updated_at FROM auth_profile ORDER BY id DESC LIMIT 1",
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
@@ -71,24 +85,56 @@ pub fn get_auth_profile(conn: &Connection) -> Result<Option<AuthProfile>> {
         Ok(AuthProfile {
             id: row.get(0)?,
             password_hash: row.get(1)?,
-            salt: row.get(2)?,
-            created_at: row.get(3)?,
+            recovery_code_hash: row.get(2)?,
+            salt: row.get(3)?,
+            created_at: row.get(4)?,
+            updated_at: row.get(5)?,
         })
     })
     .optional()
     .map_err(|e| AppError::Database(e.to_string()))
 }
 
-pub fn save_auth_profile(conn: &Connection, password_hash: &str, salt: &str) -> Result<()> {
+pub fn save_auth_profile(
+    conn: &Connection,
+    password_hash: &str,
+    recovery_code_hash: &str,
+    salt: &str,
+) -> Result<()> {
     conn.execute("DELETE FROM auth_profile", [])
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     conn.execute(
-        "INSERT INTO auth_profile (password_hash, salt) VALUES (?1, ?2)",
-        params![password_hash, salt],
+        "INSERT INTO auth_profile (password_hash, recovery_code_hash, salt, created_at, updated_at) VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+        params![password_hash, recovery_code_hash, salt],
     )
     .map_err(|e| AppError::Database(e.to_string()))?;
 
+    Ok(())
+}
+
+pub fn update_auth_password(
+    conn: &Connection,
+    new_password_hash: &str,
+    new_salt: &str,
+) -> Result<()> {
+    let affected = conn
+        .execute(
+            "UPDATE auth_profile SET password_hash = ?1, salt = ?2, updated_at = datetime('now')",
+            params![new_password_hash, new_salt],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    if affected == 0 {
+        return Err(AppError::NotFound);
+    }
+    Ok(())
+}
+
+pub fn delete_auth_profile(conn: &Connection) -> Result<()> {
+    conn.execute("DELETE FROM auth_profile", [])
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    let _ = conn.execute("DELETE FROM sqlite_sequence WHERE name = 'auth_profile'", []);
     Ok(())
 }
 

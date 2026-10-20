@@ -5,7 +5,7 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use rand_core::OsRng;
+use rand_core::{OsRng, RngCore};
 use rusqlite::Connection;
 
 use crate::encounter_service;
@@ -14,6 +14,8 @@ use crate::models::Encounter;
 use crate::repository::{self, EncounterFilter};
 
 pub const MIN_PASSWORD_LEN: usize = 4;
+
+const RECOVERY_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /// Estado de sessão em memória controlado por Mutex (bloqueado por padrão).
 pub struct SessionState {
@@ -67,25 +69,55 @@ pub fn validate_password(password: &str) -> Result<()> {
     Ok(())
 }
 
-/// Gera hash Argon2id seguro e retorna `(password_hash, salt)`.
-pub fn hash_password(password: &str) -> Result<(String, String)> {
-    validate_password(password)?;
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    let password_hash = argon2
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| AppError::Database(format!("erro ao gerar hash de senha: {e}")))?
-        .to_string();
+/// Gera um código de recuperação criptograficamente seguro no formato `XXXX-XXXX-XXXX-XXXX`
+/// (16 caracteres alfanuméricos em caixa alta divididos em 4 blocos de 4).
+pub fn generate_recovery_code() -> String {
+    let mut bytes = [0u8; 16];
+    OsRng.fill_bytes(&mut bytes);
 
-    Ok((password_hash, salt.to_string()))
+    let mut out = String::with_capacity(19);
+    for (i, &b) in bytes.iter().enumerate() {
+        if i > 0 && i % 4 == 0 {
+            out.push('-');
+        }
+        let idx = (b as usize) % RECOVERY_ALPHABET.len();
+        out.push(RECOVERY_ALPHABET[idx] as char);
+    }
+    out
 }
 
-/// Verifica se a senha fornecida corresponde ao hash Argon2id armazenado.
-pub fn verify_password(password: &str, stored_hash: &str) -> Result<bool> {
+/// Normaliza o código de recuperação (remove espaços nas extremidades e converte para maiúsculas).
+pub fn normalize_recovery_code(code: &str) -> String {
+    code.trim().to_uppercase()
+}
+
+/// Gera hash Argon2id seguro para qualquer segredo e retorna `(hash_phc, salt)`.
+pub fn hash_secret(secret: &str) -> Result<(String, String)> {
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    let hash = argon2
+        .hash_password(secret.as_bytes(), &salt)
+        .map_err(|e| AppError::Database(format!("erro ao gerar hash Argon2: {e}")))?
+        .to_string();
+
+    Ok((hash, salt.to_string()))
+}
+
+/// Gera hash Argon2id seguro para senha (validando tamanho mínimo) e retorna `(password_hash, salt)`.
+pub fn hash_password(password: &str) -> Result<(String, String)> {
+    validate_password(password)?;
+    hash_secret(password)
+}
+
+/// Verifica se o segredo fornecido corresponde ao hash Argon2id armazenado.
+pub fn verify_password(secret: &str, stored_hash: &str) -> Result<bool> {
+    if stored_hash.trim().is_empty() {
+        return Ok(false);
+    }
     let parsed_hash = PasswordHash::new(stored_hash)
         .map_err(|e| AppError::Database(format!("hash armazenado inválido: {e}")))?;
     Ok(Argon2::default()
-        .verify_password(password.as_bytes(), &parsed_hash)
+        .verify_password(secret.as_bytes(), &parsed_hash)
         .is_ok())
 }
 
@@ -94,11 +126,52 @@ pub fn check_has_account(conn: &Connection) -> Result<bool> {
     repository::has_auth_profile(conn)
 }
 
-/// Cadastra a senha no banco com hash Argon2id seguro e salt aleatório.
-pub fn setup_account(conn: &Connection, password: &str) -> Result<()> {
+/// Cadastra a senha no banco com hash Argon2id seguro, gera e persiste o hash do
+/// código de recuperação único (`XXXX-XXXX-XXXX-XXXX`) e retorna o código em texto puro.
+pub fn setup_account(conn: &Connection, password: &str) -> Result<String> {
     validate_password(password)?;
     let (password_hash, salt) = hash_password(password)?;
-    repository::save_auth_profile(conn, &password_hash, &salt)
+    let recovery_code = generate_recovery_code();
+    let (recovery_code_hash, _) = hash_secret(&recovery_code)?;
+
+    repository::save_auth_profile(conn, &password_hash, &recovery_code_hash, &salt)?;
+    Ok(recovery_code)
+}
+
+/// Redefine a senha mestre caso o código de recuperação fornecido corresponda ao hash salvo.
+pub fn reset_password_with_recovery_code(
+    conn: &Connection,
+    recovery_code: &str,
+    new_password: &str,
+) -> Result<()> {
+    let normalized = normalize_recovery_code(recovery_code);
+    if normalized.is_empty() {
+        return Err(AppError::InvalidRecoveryCode);
+    }
+
+    let profile = repository::get_auth_profile(conn)?.ok_or(AppError::InvalidRecoveryCode)?;
+
+    if !verify_password(&normalized, &profile.recovery_code_hash)? {
+        return Err(AppError::InvalidRecoveryCode);
+    }
+
+    validate_password(new_password)?;
+    let (new_password_hash, new_salt) = hash_password(new_password)?;
+    repository::update_auth_password(conn, &new_password_hash, &new_salt)
+}
+
+/// Executa o reset definitivo de fábrica (Estado Zero) mesmo sem sessão autenticada:
+/// apaga todos os encontros, remove todas as fotos em `photos/`, apaga `auth_profile`
+/// e bloqueia a sessão.
+pub fn factory_reset_unauthenticated(
+    conn: &Connection,
+    session: &SessionState,
+    photos_dir: &Path,
+) -> Result<()> {
+    encounter_service::delete_all_data(conn, photos_dir)?;
+    repository::delete_auth_profile(conn)?;
+    session.set_authenticated(false)?;
+    Ok(())
 }
 
 /// Autentica o usuário comparando a senha com o hash salvo.
@@ -196,4 +269,3 @@ pub fn guarded_delete_all_data(
     session.require_auth()?;
     encounter_service::delete_all_data(conn, photos_dir)
 }
-

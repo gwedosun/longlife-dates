@@ -34,11 +34,36 @@ pub fn check_has_account(state: State<'_, Mutex<Connection>>) -> Result<bool, Ap
 pub fn setup_account(
     state: State<'_, Mutex<Connection>>,
     password: String,
-) -> Result<(), AppError> {
+) -> Result<String, AppError> {
     let conn = state
         .lock()
         .map_err(|e| AppError::Database(e.to_string()))?;
     auth::setup_account(&conn, &password)
+}
+
+#[tauri::command]
+pub fn reset_password_with_recovery_code(
+    state: State<'_, Mutex<Connection>>,
+    recovery_code: String,
+    new_password: String,
+) -> Result<(), AppError> {
+    let conn = state
+        .lock()
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    auth::reset_password_with_recovery_code(&conn, &recovery_code, &new_password)
+}
+
+#[tauri::command]
+pub fn factory_reset_unauthenticated(
+    app: tauri::AppHandle,
+    state: State<'_, Mutex<Connection>>,
+    session: State<'_, SessionState>,
+) -> Result<(), AppError> {
+    let conn = state
+        .lock()
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    let root = photos_root(&app).map_err(AppError::Io)?;
+    auth::factory_reset_unauthenticated(&conn, &session, &root)
 }
 
 #[tauri::command]
