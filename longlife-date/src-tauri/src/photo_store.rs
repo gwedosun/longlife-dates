@@ -14,7 +14,7 @@ pub enum ImageType {
 }
 
 impl ImageType {
-    /// Extensão canônica para gravar em disco (RN09)
+    /// extensão rust para gravar em disco (RN09)
     pub fn extension(&self) -> &'static str {
         match self {
             ImageType::Jpeg => "jpg",
@@ -24,7 +24,6 @@ impl ImageType {
     }
 }
 
-// ============ Fase 1 (já existente) ============
 
 pub fn validate_image_size(size: u64) -> Result<()> {
     if size > MAX_FILE_SIZE {
@@ -49,9 +48,8 @@ pub fn detect_image_type(bytes: &[u8]) -> Result<ImageType> {
     Err(AppError::InvalidImage)
 }
 
-// ============ Fase 3 (novos) ============
 
-/// RN11: garante que o nome é "chato" — sem separadores, sem `..`, sem controle.
+/// valida se o nome é limpo
 pub fn validate_filename(name: &str) -> Result<()> {
     if name.is_empty() || name.len() > 200 {
         return Err(AppError::InvalidImage);
@@ -65,24 +63,24 @@ pub fn validate_filename(name: &str) -> Result<()> {
     Ok(())
 }
 
-/// RN08 + RN10 + RN12: grava os bytes de forma atômica e devolve o nome gerado.
+/// grava os bytes de forma atômica e devolve o nome gerado.
 pub fn save_photo(bytes: &[u8], photos_dir: &Path) -> Result<String> {
-    // 1. Valida tamanho (reutiliza a regra da Fase 1)
+    // Valida tamanho 
     validate_image_size(bytes.len() as u64)?;
 
-    // 2. Descobre o tipo real pelos magic bytes
+    // Descobre o tipo real com magic bytes
     let kind = detect_image_type(bytes)?;
 
-    // 3. Gera nome único — nunca confiamos em nome vindo de fora
+    // Gera nome unico e nao aceita nome vindo de fora
     let filename = format!("{}.{}", uuid::Uuid::new_v4(), kind.extension());
 
-    // 4. Garante que a pasta existe
+    // Garante que a pasta existe
     fs::create_dir_all(photos_dir).map_err(|e| AppError::Io(e.to_string()))?;
 
     let final_path = photos_dir.join(&filename);
     let tmp_path = photos_dir.join(format!("{}.tmp", filename));
 
-    // 5. Escrita atômica: escreve em tmp, fsync, renomeia (RN10)
+    // escreve em tmp, fsync, renomeia
     {
         let mut file = fs::File::create(&tmp_path).map_err(|e| AppError::Io(e.to_string()))?;
         file.write_all(bytes)
@@ -91,7 +89,6 @@ pub fn save_photo(bytes: &[u8], photos_dir: &Path) -> Result<String> {
     }
 
     fs::rename(&tmp_path, &final_path).map_err(|e| {
-        // se o rename falhar, tenta limpar o tmp para não deixar lixo
         let _ = fs::remove_file(&tmp_path);
         AppError::Io(e.to_string())
     })?;
@@ -99,7 +96,7 @@ pub fn save_photo(bytes: &[u8], photos_dir: &Path) -> Result<String> {
     Ok(filename)
 }
 
-/// RN11 + RN12: apaga uma foto. Se não existir, é sucesso silencioso.
+/// apaga uma foto
 pub fn delete_photo(filename: &str, photos_dir: &Path) -> Result<()> {
     validate_filename(filename)?;
 
@@ -111,7 +108,7 @@ pub fn delete_photo(filename: &str, photos_dir: &Path) -> Result<()> {
     }
 }
 
-/// Caminho absoluto para uma foto já validada (usado pelo comando Tauri).
+/// caminho absoluto para uma foto já validada (usado pelo Tauri).
 pub fn photo_path(filename: &str, photos_dir: &Path) -> Result<PathBuf> {
     validate_filename(filename)?;
     Ok(photos_dir.join(filename))

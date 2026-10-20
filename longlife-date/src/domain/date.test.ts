@@ -78,7 +78,7 @@ describe("parseBrDate", () => {
 
 import { formatDate, daysSince } from "./date";
 
-// ---------- UT-18: Formatação de data PT-BR ----------
+// ---------- formatação de data ----------
 describe("formatDate (UT-18)", () => {
   it("formata data ISO para extenso em PT-BR sem off-by-one", () => {
     expect(formatDate("2024-02-14")).toBe("14 de fevereiro de 2024");
@@ -92,7 +92,7 @@ describe("formatDate (UT-18)", () => {
   });
 });
 
-// ---------- UT-19: Contador 'dias juntos' ----------
+// ---------- 'dias juntos' ----------
 describe("daysSince (UT-19)", () => {
   it("calcula a diferença correta de dias", () => {
     expect(daysSince("2024-01-01", "2024-01-11")).toBe(10);
@@ -103,4 +103,4 @@ describe("daysSince (UT-19)", () => {
   it("lança erro para datas inválidas", () => {
     expect(() => daysSince("invalid", "2024-01-01")).toThrow();
   });
-});
+});

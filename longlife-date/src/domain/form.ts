@@ -31,13 +31,11 @@ export type FormValidationResult = ValidationSuccess | ValidationFailure;
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10 MB (RN04)
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-/**
- * Validação do formulário de encontros (UT-23 / RN01-RN04).
- */
+
 export function validateForm(values: FormValues): FormValidationResult {
   const errors: ValidationFailure["errors"] = {};
 
-  // RN01: data obrigatória, formato DD/MM/AAAA e calendário válido
+  // data obrigatória, formato DD/MM/AAAA e calendário válido
   const rawDate = values.dateBr.trim();
   let parsedIso = "";
   if (!rawDate) {
@@ -54,7 +52,7 @@ export function validateForm(values: FormValues): FormValidationResult {
     }
   }
 
-  // RN02: local obrigatório, 1-120 chars após trim
+  // local obrigatório, 1-120 chars após trim
   const trimmedLoc = values.location.trim();
   if (!trimmedLoc) {
     errors.location = "Local é obrigatório.";
@@ -62,13 +60,13 @@ export function validateForm(values: FormValues): FormValidationResult {
     errors.location = "Local deve ter no máximo 120 caracteres.";
   }
 
-  // RN03: descrição opcional, até 5000 chars
+  // descrição opcional, até 1200 char
   const desc = values.description ?? "";
-  if (desc.length > 5000) {
+  if (desc.length > 1200) {
     errors.description = "Descrição deve ter no máximo 5000 caracteres.";
   }
 
-  // RN04: foto até 10 MB e tipo suportado
+  // foto até 10 MB e tipo suportado
   if (values.photo) {
     if (values.photo.size > MAX_PHOTO_BYTES) {
       errors.photo = "Foto muito grande. Tamanho máximo: 10 MB.";

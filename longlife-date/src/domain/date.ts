@@ -1,21 +1,10 @@
-/**
- * Regras de data do frontend.
- *
- * O backend trabalha exclusivamente com ISO `YYYY-MM-DD`.
- * A UI trabalha com `DD/MM/AAAA` (padrão brasileiro).
- * Estas funções são a única fronteira entre os dois mundos.
- */
-
-
-// import { isoToBr, parseBrDate } from "./domain/date";
+// regras de data do frontend
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
 const BR_RE = /^\d{2}\/\d{2}\/\d{4}$/;
 
-/**
- * Valida se uma string está no formato ISO YYYY-MM-DD e representa
- * uma data real (rejeita 2023-02-29, por exemplo).
- */
+
+//  Valida se uma string está no formato ISO YYYY-MM-DD 
 export function isValidIsoDate(value: string): boolean {
   if (!ISO_RE.test(value)) return false;
 
@@ -30,10 +19,7 @@ export function isValidIsoDate(value: string): boolean {
   );
 }
 
-/**
- * ISO `YYYY-MM-DD` → BR `DD/MM/AAAA`.
- * Lança se a entrada não for ISO válida — o programador deve validar antes.
- */
+
 export function isoToBr(iso: string): string {
   if (!isValidIsoDate(iso)) {
     throw new Error(`Data ISO inválida: ${iso}`);
@@ -42,10 +28,7 @@ export function isoToBr(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-/**
- * BR `DD/MM/AAAA` → ISO `YYYY-MM-DD`.
- * Lança se a entrada não for BR válida ou não representar uma data real.
- */
+
 export function brToIso(br: string): string {
   if (!BR_RE.test(br)) {
     throw new Error(`Data BR inválida: ${br}`);
@@ -63,10 +46,7 @@ export type BrDateResult =
   | { ok: true; iso: string }
   | { ok: false; error: BrDateError };
 
-/**
- * Faz o parsing de uma data brasileira e diz exatamente por que falhou.
- * Use isto quando a mensagem exata importa para o usuário.
- */
+
 export function parseBrDate(br: string): BrDateResult {
   if (!BR_RE.test(br)) return { ok: false, error: "format" };
 
@@ -77,10 +57,7 @@ export function parseBrDate(br: string): BrDateResult {
   return { ok: true, iso };
 }
 
-/**
- * Formatação de data ISO para PT-BR por extenso: "14 de fevereiro de 2024" (UT-18).
- * Não sofre com problemas de fuso horário local.
- */
+
 export function formatDate(iso: string): string {
   if (!isValidIsoDate(iso)) {
     throw new Error(`Data ISO inválida: ${iso}`);
@@ -103,10 +80,7 @@ export function formatDate(iso: string): string {
   return `${d} de ${months[m - 1]} de ${y}`;
 }
 
-/**
- * UT-19: Contador de dias entre duas datas ISO.
- * daysSince("2024-01-01", "2024-01-11") => 10
- */
+
 export function daysSince(first: string, today: string): number {
   if (!isValidIsoDate(first) || !isValidIsoDate(today)) {
     throw new Error("Data ISO inválida");
@@ -117,4 +91,4 @@ export function daysSince(first: string, today: string): number {
   const t2 = Date.UTC(y2, m2 - 1, d2);
   const diffMs = t2 - t1;
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-}
+}

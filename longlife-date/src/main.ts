@@ -26,7 +26,7 @@ const store = new EncounterStore();
 // Estado local de filtros e edição
 // ============================================================
 let editingId: number | null = null;
-let sortDesc: boolean = false; // RN07: padrão cronológico crescente (ASC)
+let sortDesc: boolean = false; // ordem crescente (ASC)
 
 let filters: { query: string; fromBr: string; toBr: string } = {
   query: "",

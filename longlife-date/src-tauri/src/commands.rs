@@ -16,7 +16,6 @@ fn photos_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(photo_store::photos_dir(&base))
 }
 
-// ============ Fotos (Fase 3) ============
 
 #[tauri::command]
 pub fn save_photo_cmd(app: tauri::AppHandle, bytes: Vec<u8>) -> Result<String, String> {
@@ -38,7 +37,6 @@ pub fn get_photo_path_cmd(app: tauri::AppHandle, filename: String) -> Result<Str
         .map_err(|e| e.to_string())
 }
 
-// ============ CRUD de Encontros (Fase 4) ============
 
 #[tauri::command]
 pub fn create_encounter_cmd(

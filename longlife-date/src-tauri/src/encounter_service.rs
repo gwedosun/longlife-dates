@@ -8,8 +8,6 @@ use crate::photo_store::{delete_photo, save_photo};
 use crate::repository::{self, Order};
 use crate::service::{validate_date, validate_description, validate_location};
 
-/// Orquestra "criar encontro". Se a foto for salva e o INSERT falhar,
-/// a foto é removida — não deixamos arquivo órfão.
 pub fn create_encounter(
     conn: &Connection,
     photos_dir: &Path,
@@ -18,18 +16,15 @@ pub fn create_encounter(
     description: &str,
     photo_bytes: Option<&[u8]>,
 ) -> Result<i64> {
-    // 1. Validações de domínio primeiro (falha rápida, sem tocar em disco)
     validate_date(date)?;
     let location = validate_location(location)?;
     validate_description(description)?;
 
-    // 2. Salva a foto (se houver) — atômico
     let photo_file = match photo_bytes {
         Some(bytes) => Some(save_photo(bytes, photos_dir)?),
         None => None,
     };
 
-    // 3. Insere no banco — se falhar, desfaz a foto
     match repository::insert_encounter(conn, date, &location, description, photo_file.as_deref()) {
         Ok(id) => Ok(id),
         Err(e) => {
@@ -41,8 +36,6 @@ pub fn create_encounter(
     }
 }
 
-/// Orquestra "atualizar encontro". Se uma nova foto for enviada, salva a nova,
-/// atualiza o banco e só então apaga a antiga (ordem importa!).
 pub fn update_encounter(
     conn: &Connection,
     photos_dir: &Path,
@@ -56,22 +49,18 @@ pub fn update_encounter(
     let location = validate_location(location)?;
     validate_description(description)?;
 
-    // Descobre o nome da foto atual para podermos apagar depois
     let existing = repository::get_encounter(conn, id)?;
     let old_photo = existing.photo_file;
 
-    // Se veio nova foto, salva
     let new_photo = match new_photo_bytes {
         Some(bytes) => Some(save_photo(bytes, photos_dir)?),
         None => None,
     };
 
-    // Escolhe qual filename gravar: nova > antiga
     let effective = new_photo.as_deref().or(old_photo.as_deref());
 
     match repository::update_encounter(conn, id, date, &location, description, effective) {
         Ok(()) => {
-            // Só apaga a antiga se realmente trocamos
             if new_photo.is_some() {
                 if let Some(old) = old_photo.as_deref() {
                     let _ = delete_photo(old, photos_dir);
@@ -80,7 +69,6 @@ pub fn update_encounter(
             Ok(())
         }
         Err(e) => {
-            // DB falhou: desfaz a nova foto (a antiga continua intacta)
             if let Some(f) = new_photo.as_deref() {
                 let _ = delete_photo(f, photos_dir);
             }
@@ -89,23 +77,18 @@ pub fn update_encounter(
     }
 }
 
-/// Orquestra "apagar encontro": remove o registro e, se tinha foto, remove o arquivo.
-/// Apagar o arquivo é idempotente, então mesmo que já não exista, é sucesso.
 pub fn delete_encounter(conn: &Connection, photos_dir: &Path, id: i64) -> Result<()> {
     let existing = repository::get_encounter(conn, id)?;
 
     repository::delete_encounter(conn, id)?;
 
     if let Some(photo) = existing.photo_file.as_deref() {
-        // Se falhar aqui, logamos silenciosamente; não queremos quebrar o delete
-        // por causa de um arquivo já ausente (é idempotente de qualquer forma).
         let _ = delete_photo(photo, photos_dir);
     }
 
     Ok(())
 }
 
-/// Reexporta para o comando não precisar importar o repository.
 pub fn list_encounters(
     conn: &Connection,
     filter: &repository::EncounterFilter,
@@ -117,22 +100,15 @@ pub fn get_encounter(conn: &Connection, id: i64) -> Result<Encounter> {
     repository::get_encounter(conn, id)
 }
 
-/// RN13/RRN14: apaga todos os encontros e todas as fotos em disco.
-/// Retorna Ok(()) mesmo se o banco já estiver vazio (idempotência).
 pub fn delete_all_data(conn: &Connection, photos_dir: &Path) -> Result<()> {
-    // 1. Pega todos os filenames de foto (se houver)
     let encounters = repository::list_encounters(conn, Order::Asc)?;
 
-    // 2. Apaga cada foto. delete_photo já é idempotente (RN12/RN15).
     for e in &encounters {
         if let Some(f) = e.photo_file.as_deref() {
-            // best-effort: se falhar, continuamos; o arquivo ficará órfão no disco,
-            // o que é menos ruim do que abortar uma limpeza em massa.
             let _ = delete_photo(f, photos_dir);
         }
     }
 
-    // 3. Zera a tabela
     repository::delete_all_encounters(conn)?;
 
     Ok(())
@@ -176,7 +152,7 @@ mod tests {
         v
     }
 
-    // UT-22: cria encontro com foto — registro e arquivo existem
+    // cria encontro com foto 
     #[test]
     fn test_create_with_photo_persists_both() {
         let (conn, dir) = setup();
@@ -193,7 +169,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-23: se o domínio rejeita o local, NENHUMA foto é salva em disco
+    // se o domínio rejeita o local, nenhuma foto é salva em disco
     #[test]
     fn test_create_with_invalid_location_does_not_save_photo() {
         let (conn, dir) = setup();
@@ -224,7 +200,6 @@ mod tests {
         .unwrap_err();
         assert!(matches!(err, AppError::InvalidImage));
 
-        // Confirma que nada foi inserido
         let list = list_encounters(
             &conn,
             &EncounterFilter {
@@ -237,7 +212,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-25: atualizar com nova foto troca o arquivo e apaga o antigo
+    // atualizar com nova foto troca o arquivo e apaga o antigo
     #[test]
     fn test_update_replaces_photo() {
         let (conn, dir) = setup();
@@ -260,7 +235,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-26: atualizar sem nova foto preserva a foto antiga
+    // atualizar sem nova foto preserva a foto antiga
     #[test]
     fn test_update_without_photo_keeps_existing() {
         let (conn, dir) = setup();
@@ -279,7 +254,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-27: apagar encontro remove registro + foto
+    // apagar encontro remove registro + foto
     #[test]
     fn test_delete_removes_record_and_photo() {
         let (conn, dir) = setup();
@@ -296,7 +271,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-28: apagar encontro inexistente devolve NotFound, sem tocar em disco
+    // apagar encontro inexistente devolve NotFound
     #[test]
     fn test_delete_nonexistent_returns_not_found() {
         let (conn, dir) = setup();
@@ -305,7 +280,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-29: apagar tudo remove registros e fotos (RN13)
+    // apagar tudo remove registros e fotos
     #[test]
     fn test_delete_all_removes_records_and_photos() {
         let (conn, dir) = setup();
@@ -338,7 +313,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-30: apagar tudo é idempotente (RN14)
+    // apagar tudo é idempotente 
     #[test]
     fn test_delete_all_is_idempotent() {
         let (conn, dir) = setup();
@@ -355,7 +330,7 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
-    // UT-31: apagar tudo com foto já removida do disco não quebra (RN15)
+    // apagar tudo com foto já removida do disco não quebra (RN15)
     #[test]
     fn test_delete_all_handles_missing_photo_file() {
         let (conn, dir) = setup();
@@ -366,7 +341,7 @@ mod tests {
         // removemos o arquivo à mão (simulando corrupção)
         fs::remove_file(dir.join(&f)).unwrap();
 
-        // ainda assim, apagar tudo deve funcionar
+        // apagar tudo ainda deve funcionar
         assert!(delete_all_data(&conn, &dir).is_ok());
         assert!(list_encounters(
             &conn,

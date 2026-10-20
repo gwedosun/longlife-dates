@@ -16,7 +16,7 @@ fn escape_like(s: &str) -> String {
         .replace('_', "\\_")
 }
 
-// Cria a tabela com regras de integridade (CHECK) diretamente no SQLite
+// Cria a tabela com regras de integridade diretamente no SQLite
 pub fn migrate(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         r#"
@@ -84,7 +84,7 @@ pub enum Order {
     Desc,
 }
 
-// Listagem com suporte a ordenação cronológica e desempate estável por ID
+// Listagem com suporte a ordenação cronológica e desempate por ID
 pub fn list_encounters(conn: &Connection, order: Order) -> Result<Vec<Encounter>> {
     let order_clause = match order {
         Order::Asc => "ORDER BY date ASC, id ASC",
@@ -159,14 +159,12 @@ pub fn delete_all_encounters(conn: &Connection) -> Result<()> {
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     // Zera o AUTOINCREMENT para o próximo id voltar a 1.
-    // A tabela sqlite_sequence existe apenas quando há AUTOINCREMENT, então
-    // ignoramos o erro se ela não existir.
     let _ = conn.execute("DELETE FROM sqlite_sequence WHERE name = 'encounters'", []);
 
     Ok(())
 }
 
-/// Lista com filtros opcionais. Sem filtros, é idêntico a `list_encounters`.
+/// Lista com filtros opcionais. 
 pub fn list_encounters_filtered(
     conn: &Connection,
     filter: &EncounterFilter,
